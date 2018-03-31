@@ -25,6 +25,8 @@ public class StaticAgent extends AgentBase {
 
         Init();
         RegisterOnYellowPages(Type, District);
+
+        StartListenYouAreLeaderMessage();
     }
 
     private void Init() {

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 /**
  * Created by K750JB on 24.03.2018.
  */
-public class CoordinatorAgent2 extends AgentBase {
+public class CoordinatorAgent2 extends Agent {
     private StartupSettings startupSettings; // TODO parse from json
 
     @Override

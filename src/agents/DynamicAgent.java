@@ -23,6 +23,8 @@ public class DynamicAgent extends AgentBase {
 
         Init();
         RegisterOnYellowPages(Type, District);
+
+        StartListenYouAreLeaderMessage();
     }
 
     private void Init() {
