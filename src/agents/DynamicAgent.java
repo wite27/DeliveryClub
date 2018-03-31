@@ -1,8 +1,12 @@
 package agents;
 
+import behaviours.ReceiverWithHandlerBehaviour;
 import jade.core.Agent;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
 import models.AgentType;
+import models.Consts;
 
 import java.util.ArrayList;
 
@@ -24,6 +28,14 @@ public class DynamicAgent extends AgentBase {
         RegisterOnYellowPages(Type, District);
 
         StartListenYouAreLeaderMessage();
+
+        var mt = new MessageTemplate(msg ->
+            msg.getPerformative() == ACLMessage.REQUEST
+                    && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
+        );
+        addBehaviour(new ReceiverWithHandlerBehaviour(this, 10000, mt, aclMessage -> {
+            System.out.println("Agent " + this.getName() + " got message " + aclMessage.getContent());
+        }));
     }
 
     private void Init() {

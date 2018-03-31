@@ -18,7 +18,7 @@ public class StaticAgent extends AgentBase {
         super.setup();
 
         Init();
-        RegisterOnYellowPages(Type, getDistrict());
+        RegisterOnYellowPages(Type, District);
 
         StartListenYouAreLeaderMessage();
     }

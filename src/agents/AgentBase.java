@@ -1,5 +1,6 @@
 package agents;
 
+import behaviours.DistrictLeaderBehaviour;
 import behaviours.ReceiverWithHandlerBehaviour;
 import jade.core.Agent;
 import jade.core.behaviours.ReceiverBehaviour;
@@ -34,6 +35,7 @@ public class AgentBase extends Agent {
                 && msg.getContent().equals(YouAreDistrictLeaderMessage.Content));
         addBehaviour(new ReceiverWithHandlerBehaviour(this, Long.MAX_VALUE, mt, aclMessage -> {
             System.out.println("Agent " + this.getName() + " got leader message from " + aclMessage.getSender().getName());
+            addBehaviour(new DistrictLeaderBehaviour(this));
         }));
     }
 
