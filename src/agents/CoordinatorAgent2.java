@@ -4,6 +4,7 @@ import behaviours.CoordinatorSelectDistrictLeadersBehaviour;
 import environment.Map;
 import environment.Store;
 import jade.core.Agent;
+import jade.core.Timer;
 import jade.domain.introspection.AddedBehaviour;
 import jade.wrapper.StaleProxyException;
 import models.*;
@@ -21,7 +22,7 @@ public class CoordinatorAgent2 extends Agent {
     protected void setup() {
         super.setup();
         CreateStartupSettings();
-         try {
+        try {
             Map.GetInstance().Initialize(startupSettings.Vertices);
             Store.GetInstance().Initialize(startupSettings.Store);
             CreateAgents(startupSettings.Agents);

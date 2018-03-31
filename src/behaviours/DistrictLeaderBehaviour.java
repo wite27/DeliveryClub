@@ -9,10 +9,12 @@ import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.SimpleBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import models.AgentType;
 import models.Consts;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class DistrictLeaderBehaviour extends SequentialBehaviour {
     private AgentBase agent;
@@ -29,15 +31,32 @@ public class DistrictLeaderBehaviour extends SequentialBehaviour {
             @Override
             public void action() {
                 for (var potentialCourier: dynamicAgentsInThisDistrict) {
-                    var msg = new ACLMessage(ACLMessage.REQUEST);
-                    msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
-                    msg.addReceiver(potentialCourier.getName());
-                    agent.send(msg);
+                    AskHowMuchCostDeliveryToDistrict(potentialCourier);
                 }
             }
         });
+
+        var mt = new MessageTemplate(msg ->
+            msg.getPerformative() == ACLMessage.AGREE
+                    && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
+        );
         addSubBehaviour(new BatchReceiverWithHandlerBehaviour(agent, dynamicAgentsInThisDistrict.length, 10000,
-                null, aclMessages -> {
+                mt, aclMessages -> {
+            var bestDeal = aclMessages.stream()
+                    .min(Comparator.comparingInt(o ->
+                            Integer.parseInt(o.getContent().substring(Consts.IWillDeliverToDistrictPrefix.length()))))
+                    .get(); // TODO isPresent() check
+
+            System.out.println("Agent " + this.agent.getName() +
+                               " choosed best deal: " + bestDeal.getContent() +
+                               " from " + bestDeal.getSender().getName());
         }));
+    }
+
+    private void AskHowMuchCostDeliveryToDistrict(DFAgentDescription potentialCourier) {
+        var msg = new ACLMessage(ACLMessage.REQUEST);
+        msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
+        msg.addReceiver(potentialCourier.getName());
+        agent.send(msg);
     }
 }

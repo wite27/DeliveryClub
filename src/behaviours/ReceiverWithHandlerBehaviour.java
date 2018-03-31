@@ -19,7 +19,10 @@ public class ReceiverWithHandlerBehaviour extends SequentialBehaviour {
             @Override
             public void action() {
                 try {
-                    handlerFn.accept(receiver.getMessage());
+                    var message = receiver.getMessage();
+                    System.out.println("Agent " + agent.getName() + " got message " + message.getContent()
+                                     + " from " + message.getSender().getName());
+                    handlerFn.accept(message);
                 } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                     timedOut.printStackTrace();
                 }

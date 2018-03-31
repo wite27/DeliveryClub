@@ -28,14 +28,7 @@ public class DynamicAgent extends AgentBase {
         RegisterOnYellowPages(Type, District);
 
         StartListenYouAreLeaderMessage();
-
-        var mt = new MessageTemplate(msg ->
-            msg.getPerformative() == ACLMessage.REQUEST
-                    && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
-        );
-        addBehaviour(new ReceiverWithHandlerBehaviour(this, 10000, mt, aclMessage -> {
-            System.out.println("Agent " + this.getName() + " got message " + aclMessage.getContent());
-        }));
+        StartListenHowMuchCostDeliveryToRegion();
     }
 
     private void Init() {
@@ -45,5 +38,26 @@ public class DynamicAgent extends AgentBase {
         Route = settings.Route;
         CurrentMoney = settings.StartMoney;
         District = settings.District;
+    }
+
+    private void StartListenHowMuchCostDeliveryToRegion() {
+        var mt = new MessageTemplate(msg ->
+            msg.getPerformative() == ACLMessage.REQUEST
+                    && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
+        );
+        addBehaviour(new ReceiverWithHandlerBehaviour(this, 10000, mt, aclMessage -> {
+            var answerTo = aclMessage.getSender();
+
+            var answer = new ACLMessage(ACLMessage.AGREE);
+            answer.setContent(Consts.IWillDeliverToDistrictPrefix + String.valueOf(CalculateDeliveryCost()));
+            answer.addReceiver(answerTo);
+
+            send(answer);
+        }));
+    }
+
+    private int CalculateDeliveryCost()
+    {
+        return 2; // TODO smarter algorithm
     }
 }
