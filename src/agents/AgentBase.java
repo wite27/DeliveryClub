@@ -18,6 +18,7 @@ import models.Consts;
  * Created by K750JB on 24.03.2018.
  */
 public class AgentBase extends Agent {
+    protected int District;
 
     protected void RegisterOnYellowPages(AgentType agentType, int district) {
         ServiceDescription sd  = new ServiceDescription();
@@ -25,6 +26,19 @@ public class AgentBase extends Agent {
         sd.setName(getLocalName());
         sd.addProperties(new Property(Consts.District, district));
         register(sd);
+    }
+
+    protected void StartListenYouAreLeaderMessage() {
+        var mt = new MessageTemplate(msg ->
+                msg.getPerformative() == ACLMessage.INFORM
+                && msg.getContent().equals(YouAreDistrictLeaderMessage.Content));
+        addBehaviour(new ReceiverWithHandlerBehaviour(this, Long.MAX_VALUE, mt, aclMessage -> {
+            System.out.println("Agent " + this.getName() + " got leader message from " + aclMessage.getSender().getName());
+        }));
+    }
+
+    public int GetDistrict() {
+        return District;
     }
 
     private void register( ServiceDescription sd)
@@ -37,14 +51,5 @@ public class AgentBase extends Agent {
             DFService.register(this, dfd);
         }
         catch (FIPAException fe) { fe.printStackTrace(); }
-    }
-
-    protected void StartListenYouAreLeaderMessage() {
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.INFORM
-                && msg.getContent().equals(YouAreDistrictLeaderMessage.Content));
-        addBehaviour(new ReceiverWithHandlerBehaviour(this, Long.MAX_VALUE, mt, aclMessage -> {
-            System.out.println("Agent " + this.getName() + " got leader message from " + aclMessage.getSender().getName());
-        }));
     }
 }

@@ -78,6 +78,17 @@ public class CoordinatorAgent2 extends Agent {
         agentSettings2.Route.add("B");
         agentSettings2.Route.add("A");
         agentSettings2.Route.add("D");
+
+        var agentSettings3 = new AgentSettings();
+        agentSettings2.Name = "Haska";
+        agentSettings2.District = 0;
+        agentSettings2.NeededProductsCount = 0;
+        agentSettings2.Type = AgentType.Dynamic;
+        startupSettings.Agents.add(agentSettings3);
+        agentSettings2.Route = new ArrayList<String>();
+        agentSettings2.Route.add("B");
+        agentSettings2.Route.add("A");
+        agentSettings2.Route.add("D");
     }
 
     private void CreateAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {

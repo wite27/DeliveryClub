@@ -15,7 +15,6 @@ public class DynamicAgent extends AgentBase {
     private int NeededProductsCount;
     private int CurrentMoney;
     private ArrayList<String> Route;
-    private int District;
 
     @Override
     protected void setup() {

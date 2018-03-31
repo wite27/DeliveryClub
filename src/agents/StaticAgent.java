@@ -1,10 +1,5 @@
 package agents;
 
-import jade.core.Agent;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import models.AgentSettings;
 import models.AgentType;
 
@@ -17,14 +12,13 @@ public class StaticAgent extends AgentBase {
     private int NeededProductsCount;
     private int CurrentMoney;
     private String Location;
-    private int District;
 
     @Override
     protected void setup() {
         super.setup();
 
         Init();
-        RegisterOnYellowPages(Type, District);
+        RegisterOnYellowPages(Type, getDistrict());
 
         StartListenYouAreLeaderMessage();
     }
