@@ -32,7 +32,11 @@ public class Map {
         {
             for (String endVertexName : startVertex.AdjacentVertices)
             {
-                Graph.setEdgeWeight(Graph.addEdge(startVertex.Name, endVertexName), 1);
+                var edge = Graph.addEdge(startVertex.Name, endVertexName);
+                if (edge != null) // could be added before
+                {
+                    Graph.setEdgeWeight(edge, 1);
+                }
             }
         }
         shortestPaths = new FloydWarshallShortestPaths<>(Graph);

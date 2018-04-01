@@ -66,9 +66,11 @@ public class DynamicAgent extends AgentBase {
         var map = Map.GetInstance();
 
         var costWithoutStore = map.GetPathWeight(home, work);
+        System.out.println(getName() + " without store = " + costWithoutStore);
         var costWithStore = map.GetPathWeight(home, store) + map.GetPathWeight(store, work);
+        System.out.println(getName() + " with store = " + costWithStore);
 
-        var delta = (costWithStore - costWithoutStore) / 2;
+        var delta = (costWithStore - costWithoutStore);
 
         return delta > 0
                 ? delta

@@ -5,12 +5,14 @@ import environment.Map;
 import environment.Store;
 import jade.core.Agent;
 import jade.core.Timer;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.introspection.AddedBehaviour;
 import jade.wrapper.StaleProxyException;
 import models.*;
 
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -30,7 +32,14 @@ public class CoordinatorAgent2 extends Agent {
             e.printStackTrace();
         }
 
-        addBehaviour(new CoordinatorSelectDistrictLeadersBehaviour(this));
+        var self = this;
+        addBehaviour(new TickerBehaviour(this, 100) { // wait other agents to register on yellow pages
+            @Override
+            protected void onTick() {
+                addBehaviour(new CoordinatorSelectDistrictLeadersBehaviour(self));
+                stop();
+            }
+        });
     }
 
     public int[] GetAllDistricts() {
@@ -39,57 +48,78 @@ public class CoordinatorAgent2 extends Agent {
 
     private void CreateStartupSettings() {
         startupSettings = new StartupSettings();
-        var vertices = new ArrayList<VertexSettings>();
-        startupSettings.Vertices = vertices;
+        startupSettings.Vertices = new ArrayList<>() {{
+            add(new VertexSettings("A", new ArrayList<>() {{
+                add("B");
+                add("E");
+            }}));
+            add(new VertexSettings("B", new ArrayList<>() {{
+                add("A");
+                add("S");
+                add("C");
+            }}));
+            add(new VertexSettings("C", new ArrayList<>() {{
+                add("B");
+                add("D");
+            }}));
+            add(new VertexSettings("D", new ArrayList<>() {{
+                add("C");
+                add("F");
+            }}));
+            add(new VertexSettings("F", new ArrayList<>() {{
+                add("D");
+                add("E");
+            }}));
+            add(new VertexSettings("E", new ArrayList<>() {{
+                add("F");
+                add("A");
+            }}));
+            add(new VertexSettings("S", new ArrayList<>() {{
+                add("B");
+            }}));
+        }};
 
-        var vertexSettings = new VertexSettings("A", new ArrayList<String>());
-        vertexSettings.AdjacentVertices.add("B");
-        vertexSettings.AdjacentVertices.add("D");
-        vertices.add(vertexSettings);
+        startupSettings.Store = new StoreSettings() {{
+            Name = "S";
+            ProductsCount = 5;
+        }};
 
-        var vertexSettings2 = new VertexSettings("B", new ArrayList<String>());
-        vertexSettings2.AdjacentVertices.add("D");
-        vertices.add(vertexSettings2);
+        startupSettings.Agents = new ArrayList<>();
 
-        var vertexSettings3 = new VertexSettings("D", new ArrayList<String>());
-        vertices.add(vertexSettings3);
+        var anna = new AgentSettings() {{
+            Name = "Anna";
+            District = 0;
+            NeededProductsCount = 0;
+            Type = AgentType.Static;
+            Route = new ArrayList<>(){{
+                add("D");
+            }};
+        }};
+        startupSettings.Agents.add(anna);
 
-        var storeSettings = new StoreSettings();
-        storeSettings.Name = "B";
-        storeSettings.ProductsCount = 5;
-        startupSettings.Store =storeSettings;
+        var andrey = new AgentSettings(){{
+            Name = "Andrey";
+            District = 0;
+            NeededProductsCount = 0;
+            Type = AgentType.Dynamic;
+            Route = new ArrayList<>() {{
+                add("A");
+                add("C");
+            }};
+        }};
+        startupSettings.Agents.add(andrey);
 
-        var agentSettings = new AgentSettings();
-        startupSettings.Agents = new ArrayList<AgentSettings>();
-        agentSettings.NeededProductsCount = 5;
-        agentSettings.Type = AgentType.Static;
-        agentSettings.Name = "Anna";
-        agentSettings.District = 0;
-        agentSettings.Route = new ArrayList<String>(1);
-        agentSettings.Route.add("D");
-        startupSettings.Agents.add(agentSettings);
-
-        var agentSettings2 = new AgentSettings();
-        agentSettings2.Name = "Andrey";
-        agentSettings2.District = 0;
-        agentSettings2.NeededProductsCount = 0;
-        agentSettings2.Type = AgentType.Dynamic;
-        startupSettings.Agents.add(agentSettings2);
-        agentSettings2.Route = new ArrayList<String>();
-        agentSettings2.Route.add("B");
-        agentSettings2.Route.add("A");
-        agentSettings2.Route.add("D");
-
-        var agentSettings3 = new AgentSettings();
-        agentSettings3.Name = "Haska";
-        agentSettings3.District = 0;
-        agentSettings3.NeededProductsCount = 0;
-        agentSettings3.Type = AgentType.Dynamic;
-        startupSettings.Agents.add(agentSettings3);
-        agentSettings3.Route = new ArrayList<String>();
-        agentSettings3.Route.add("B");
-        agentSettings3.Route.add("A");
-        agentSettings3.Route.add("D");
+        var haska = new AgentSettings() {{
+            Name = "Haska";
+            District = 0;
+            NeededProductsCount = 0;
+            Type = AgentType.Dynamic;
+            Route = new ArrayList<>() {{
+                add("E");
+                add("D");
+            }};
+        }};
+        startupSettings.Agents.add(haska);
     }
 
     private void CreateAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {
