@@ -43,4 +43,8 @@ public class Store {
             return true;
         }
     }
+
+    public String GetName() {
+        return Name;
+    }
 }

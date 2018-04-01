@@ -1,6 +1,8 @@
 package agents;
 
 import behaviours.ReceiverWithHandlerBehaviour;
+import environment.Map;
+import environment.Store;
 import jade.core.Agent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -43,7 +45,7 @@ public class DynamicAgent extends AgentBase {
     private void StartListenHowMuchCostDeliveryToRegion() {
         var mt = new MessageTemplate(msg ->
             msg.getPerformative() == ACLMessage.REQUEST
-                    && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
+            && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
         );
         addBehaviour(new ReceiverWithHandlerBehaviour(this, 10000, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
@@ -58,6 +60,18 @@ public class DynamicAgent extends AgentBase {
 
     private int CalculateDeliveryCost()
     {
-        return 2; // TODO smarter algorithm
+        var home = Route.get(0);
+        var work = Route.get(Route.size() - 1);
+        var store = Store.GetInstance().GetName();
+        var map = Map.GetInstance();
+
+        var costWithoutStore = map.GetPathWeight(home, work);
+        var costWithStore = map.GetPathWeight(home, store) + map.GetPathWeight(store, work);
+
+        var delta = (costWithStore - costWithoutStore) / 2;
+
+        return delta > 0
+                ? delta
+                : 0;
     }
 }

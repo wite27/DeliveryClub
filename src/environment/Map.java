@@ -1,6 +1,7 @@
 package environment;
 
 import models.VertexSettings;
+import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleWeightedGraph;
 
@@ -12,15 +13,15 @@ import java.util.ArrayList;
 public class Map {
     private static Map ourInstance = new Map();
 
+    private FloydWarshallShortestPaths<String, DefaultWeightedEdge> shortestPaths;
+
     public SimpleWeightedGraph<String, DefaultWeightedEdge> Graph =
             new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
 
     public static Map GetInstance() {
         return ourInstance;
     }
-
-    private Map() {
-    }
+    private Map() {}
 
     public Map Initialize(ArrayList<VertexSettings> vertices) {
         for (VertexSettings vertex : vertices)
@@ -34,6 +35,13 @@ public class Map {
                 Graph.setEdgeWeight(Graph.addEdge(startVertex.Name, endVertexName), 1);
             }
         }
+        shortestPaths = new FloydWarshallShortestPaths<>(Graph);
+
         return this;
+    }
+
+    public int GetPathWeight(String source, String to)
+    {
+        return (int) shortestPaths.getPathWeight(source, to);
     }
 }
