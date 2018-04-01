@@ -2,6 +2,7 @@ package behaviours;
 
 import agents.AgentBase;
 import helpers.AgentHelper;
+import helpers.Log;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -47,9 +48,8 @@ public class DistrictLeaderBehaviour extends SequentialBehaviour {
                             Integer.parseInt(o.getContent().substring(Consts.IWillDeliverToDistrictPrefix.length()))))
                     .get(); // TODO isPresent() check
 
-            System.out.println("Agent " + this.agent.getName() +
-                               " choosed best deal: " + bestDeal.getContent() +
-                               " from " + bestDeal.getSender().getName());
+            Log.FromAgent(this.agent,"choosed best deal: " + bestDeal.getContent() +
+                    " from " + bestDeal.getSender().getName());
         }));
     }
 

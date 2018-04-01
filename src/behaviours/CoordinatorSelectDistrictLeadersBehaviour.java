@@ -2,6 +2,7 @@ package behaviours;
 
 import agents.CoordinatorAgent2;
 import helpers.AgentHelper;
+import helpers.Log;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import messages.YouAreDistrictLeaderMessage;
@@ -40,7 +41,7 @@ public class CoordinatorSelectDistrictLeadersBehaviour extends OneShotBehaviour 
 
     private void SendMessageToLeader(DFAgentDescription leader)
     {
-        System.out.println("Send leader message to " + leader.getName());
+        Log.FromAgent(this.agent, "Send leader message to " + leader.getName());
         agent.send(new YouAreDistrictLeaderMessage(leader));
     }
 }

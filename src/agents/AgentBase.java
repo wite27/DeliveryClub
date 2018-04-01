@@ -30,10 +30,8 @@ public class AgentBase extends Agent {
     }
 
     protected void StartListenYouAreLeaderMessage() {
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.INFORM
-                && msg.getContent().equals(YouAreDistrictLeaderMessage.Content));
-        addBehaviour(new ReceiverWithHandlerBehaviour(this, Long.MAX_VALUE, mt, aclMessage -> {
+        var template = YouAreDistrictLeaderMessage.Template();
+        addBehaviour(new ReceiverWithHandlerBehaviour(this, Long.MAX_VALUE, template, aclMessage -> {
             System.out.println("Agent " + this.getName() + " got leader message from " + aclMessage.getSender().getName());
             addBehaviour(new DistrictLeaderBehaviour(this));
         }));

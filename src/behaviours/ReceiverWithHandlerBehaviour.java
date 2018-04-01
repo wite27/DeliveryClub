@@ -1,5 +1,6 @@
 package behaviours;
 
+import helpers.Log;
 import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ReceiverBehaviour;
@@ -20,8 +21,7 @@ public class ReceiverWithHandlerBehaviour extends SequentialBehaviour {
             public void action() {
                 try {
                     var message = receiver.getMessage();
-                    System.out.println("Agent " + agent.getName() + " got message " + message.getContent()
-                                     + " from " + message.getSender().getName());
+                    Log.MessageReceived(agent, message);
                     handlerFn.accept(message);
                 } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                     timedOut.printStackTrace();

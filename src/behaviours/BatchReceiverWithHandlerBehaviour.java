@@ -1,5 +1,6 @@
 package behaviours;
 
+import helpers.Log;
 import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ReceiverBehaviour;
@@ -27,13 +28,16 @@ public class BatchReceiverWithHandlerBehaviour extends SequentialBehaviour {
                 {
                     try {
                         var message = receiver.getMessage();
-                        System.out.println("Agent " + agent.getName() + " got message " + message.getContent()
-                                + " from " + message.getSender().getName());
-
+                        Log.MessageReceived(agent, message);
                         readyMessages.add(message);
                     } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                         timedOut.printStackTrace();
                     }
+                }
+
+                if (readyMessages.size() != replyCount)
+                {
+                    Log.Warn(agent.getName() + " got " + readyMessages.size() + " out of " + replyCount + " messages");
                 }
 
                 handlerFn.accept(readyMessages);
