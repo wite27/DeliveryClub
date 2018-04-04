@@ -7,28 +7,28 @@ import models.AgentType;
  * Created by K750JB on 24.03.2018.
  */
 public class StaticAgent extends AgentBase {
-    private final AgentType Type = AgentType.Static;
+    private final AgentType type = AgentType.Static;
 
-    private int NeededProductsCount;
-    private int CurrentMoney;
-    private String Location;
+    private int neededProductsCount;
+    private int currentMoney;
+    private String location;
 
     @Override
     protected void setup() {
         super.setup();
 
-        Init();
-        RegisterOnYellowPages(Type, District);
+        init();
+        registerOnYellowPages(type, district);
 
-        StartListenYouAreLeaderMessage();
+        startListenYouAreLeaderMessage();
     }
 
-    private void Init() {
+    private void init() {
         Object[] args = getArguments();
         AgentSettings settings = (AgentSettings)args[0];
-        NeededProductsCount = settings.NeededProductsCount;
-        Location = settings.Route.get(0);
-        CurrentMoney = settings.StartMoney;
-        District = settings.District;
+        neededProductsCount = settings.NeededProductsCount;
+        location = settings.Route.get(0);
+        currentMoney = settings.StartMoney;
+        district = settings.District;
     }
 }

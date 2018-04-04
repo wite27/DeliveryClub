@@ -3,18 +3,14 @@ package behaviours;
 import agents.AgentBase;
 import helpers.AgentHelper;
 import helpers.Log;
-import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
-import jade.core.behaviours.SimpleBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentType;
 import models.Consts;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 
 public class DistrictLeaderBehaviour extends SequentialBehaviour {
@@ -26,13 +22,13 @@ public class DistrictLeaderBehaviour extends SequentialBehaviour {
 
         this.agent = agent;
         dynamicAgentsInThisDistrict = AgentHelper
-                .FindAgents(agent, AgentType.Dynamic, agent.GetDistrict());
+                .findAgents(agent, AgentType.Dynamic, agent.getDistrict());
 
         addSubBehaviour(new OneShotBehaviour() {
             @Override
             public void action() {
                 for (var potentialCourier: dynamicAgentsInThisDistrict) {
-                    AskHowMuchCostDeliveryToDistrict(potentialCourier);
+                    askHowMuchCostDeliveryToDistrict(potentialCourier);
                 }
             }
         });
@@ -48,12 +44,12 @@ public class DistrictLeaderBehaviour extends SequentialBehaviour {
                             Integer.parseInt(o.getContent().substring(Consts.IWillDeliverToDistrictPrefix.length()))))
                     .get(); // TODO isPresent() check
 
-            Log.FromAgent(this.agent,"choosed best deal: " + bestDeal.getContent() +
+            Log.fromAgent(this.agent,"choosed best deal: " + bestDeal.getContent() +
                     " from " + bestDeal.getSender().getName());
         }));
     }
 
-    private void AskHowMuchCostDeliveryToDistrict(DFAgentDescription potentialCourier) {
+    private void askHowMuchCostDeliveryToDistrict(DFAgentDescription potentialCourier) {
         var msg = new ACLMessage(ACLMessage.REQUEST);
         msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
         msg.addReceiver(potentialCourier.getName());

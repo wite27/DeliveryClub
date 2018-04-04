@@ -1,9 +1,9 @@
 package agents;
 
 import behaviours.ReceiverWithHandlerBehaviour;
-import environment.Map;
+import environment.CityMap;
 import environment.Store;
-import jade.core.Agent;
+import helpers.Log;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
@@ -16,33 +16,33 @@ import java.util.ArrayList;
  * Created by K750JB on 24.03.2018.
  */
 public class DynamicAgent extends AgentBase {
-    private final AgentType Type = AgentType.Dynamic;
+    private final AgentType type = AgentType.Dynamic;
 
-    private int NeededProductsCount;
-    private int CurrentMoney;
-    private ArrayList<String> Route;
+    private int neededProductsCount;
+    private int currentMoney;
+    private ArrayList<String> route;
 
     @Override
     protected void setup() {
         super.setup();
 
-        Init();
-        RegisterOnYellowPages(Type, District);
+        init();
+        registerOnYellowPages(type, district);
 
-        StartListenYouAreLeaderMessage();
-        StartListenHowMuchCostDeliveryToRegion();
+        startListenYouAreLeaderMessage();
+        startListenHowMuchCostDeliveryToRegion();
     }
 
-    private void Init() {
+    private void init() {
         var args = getArguments();
         var settings = (AgentSettings)args[0];
-        NeededProductsCount = settings.NeededProductsCount;
-        Route = settings.Route;
-        CurrentMoney = settings.StartMoney;
-        District = settings.District;
+        neededProductsCount = settings.NeededProductsCount;
+        route = settings.Route;
+        currentMoney = settings.StartMoney;
+        district = settings.District;
     }
 
-    private void StartListenHowMuchCostDeliveryToRegion() {
+    private void startListenHowMuchCostDeliveryToRegion() {
         var mt = new MessageTemplate(msg ->
             msg.getPerformative() == ACLMessage.REQUEST
             && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
@@ -51,24 +51,24 @@ public class DynamicAgent extends AgentBase {
             var answerTo = aclMessage.getSender();
 
             var answer = new ACLMessage(ACLMessage.AGREE);
-            answer.setContent(Consts.IWillDeliverToDistrictPrefix + String.valueOf(CalculateDeliveryCost()));
+            answer.setContent(Consts.IWillDeliverToDistrictPrefix + String.valueOf(calculateDeliveryCost()));
             answer.addReceiver(answerTo);
 
             send(answer);
         }));
     }
 
-    private int CalculateDeliveryCost()
+    private int calculateDeliveryCost()
     {
-        var home = Route.get(0);
-        var work = Route.get(Route.size() - 1);
-        var store = Store.GetInstance().GetName();
-        var map = Map.GetInstance();
+        var home = route.get(0);
+        var work = route.get(route.size() - 1);
+        var store = Store.getInstance().getName();
+        var map = CityMap.getInstance();
 
-        var costWithoutStore = map.GetPathWeight(home, work);
-        System.out.println(getName() + " without store = " + costWithoutStore);
-        var costWithStore = map.GetPathWeight(home, store) + map.GetPathWeight(store, work);
-        System.out.println(getName() + " with store = " + costWithStore);
+        var costWithoutStore = map.getPathWeight(home, work);
+        Log.fromAgent(this, " without store = " + costWithoutStore);
+        var costWithStore = map.getPathWeight(home, store) + map.getPathWeight(store, work);
+        Log.fromAgent(this, " with store = " + costWithStore);
 
         var delta = (costWithStore - costWithoutStore);
 

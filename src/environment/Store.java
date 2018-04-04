@@ -7,7 +7,7 @@ import models.StoreSettings;
  */
 public class Store {
     private static Store ourInstance = new Store();
-    public static Store GetInstance() {
+    public static Store getInstance() {
         return ourInstance;
     }
     private Store() {
@@ -44,7 +44,7 @@ public class Store {
         }
     }
 
-    public String GetName() {
+    public String getName() {
         return Name;
     }
 }

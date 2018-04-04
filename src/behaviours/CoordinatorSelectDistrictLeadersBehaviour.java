@@ -22,14 +22,14 @@ public class CoordinatorSelectDistrictLeadersBehaviour extends OneShotBehaviour 
 
     @Override
     public void action() {
-        var districts = agent.GetAllDistricts();
+        var districts = agent.getAllDistricts();
         for (int district : districts) {
             RandomlyChooseLeaderAndSendMessage(district);
         }
     }
 
     private void RandomlyChooseLeaderAndSendMessage(int district) {
-        var agents = AgentHelper.FindAgents(agent, district);
+        var agents = AgentHelper.findAgents(agent, district);
         var leaderIndex = ChooseLeaderIndex(agents.length);
 
         SendMessageToLeader(agents[leaderIndex]);
@@ -41,7 +41,7 @@ public class CoordinatorSelectDistrictLeadersBehaviour extends OneShotBehaviour 
 
     private void SendMessageToLeader(DFAgentDescription leader)
     {
-        Log.FromAgent(this.agent, "Send leader message to " + leader.getName());
+        Log.fromAgent(this.agent, "Send leader message to " + leader.getName());
         agent.send(new YouAreDistrictLeaderMessage(leader));
     }
 }

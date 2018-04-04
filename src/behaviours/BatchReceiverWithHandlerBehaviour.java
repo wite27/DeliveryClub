@@ -28,7 +28,7 @@ public class BatchReceiverWithHandlerBehaviour extends SequentialBehaviour {
                 {
                     try {
                         var message = receiver.getMessage();
-                        Log.MessageReceived(agent, message);
+                        Log.messageReceived(agent, message);
                         readyMessages.add(message);
                     } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                         timedOut.printStackTrace();
@@ -37,7 +37,7 @@ public class BatchReceiverWithHandlerBehaviour extends SequentialBehaviour {
 
                 if (readyMessages.size() != replyCount)
                 {
-                    Log.Warn(agent.getName() + " got " + readyMessages.size() + " out of " + replyCount + " messages");
+                    Log.warn(agent.getName() + " got " + readyMessages.size() + " out of " + replyCount + " messages");
                 }
 
                 handlerFn.accept(readyMessages);

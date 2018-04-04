@@ -1,18 +1,15 @@
 package agents;
 
 import behaviours.CoordinatorSelectDistrictLeadersBehaviour;
-import environment.Map;
+import environment.CityMap;
 import environment.Store;
 import jade.core.Agent;
-import jade.core.Timer;
 import jade.core.behaviours.TickerBehaviour;
-import jade.domain.introspection.AddedBehaviour;
 import jade.wrapper.StaleProxyException;
 import models.*;
 
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -23,11 +20,11 @@ public class CoordinatorAgent2 extends Agent {
     @Override
     protected void setup() {
         super.setup();
-        CreateStartupSettings();
+        createStartupSettings();
         try {
-            Map.GetInstance().Initialize(startupSettings.Vertices);
-            Store.GetInstance().Initialize(startupSettings.Store);
-            CreateAgents(startupSettings.Agents);
+            CityMap.getInstance().Initialize(startupSettings.Vertices);
+            Store.getInstance().Initialize(startupSettings.Store);
+            createAgents(startupSettings.Agents);
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
@@ -42,11 +39,11 @@ public class CoordinatorAgent2 extends Agent {
         });
     }
 
-    public int[] GetAllDistricts() {
+    public int[] getAllDistricts() {
         return new int[] {0}; // TODO read from settings
     }
 
-    private void CreateStartupSettings() {
+    private void createStartupSettings() {
         startupSettings = new StartupSettings();
         startupSettings.Vertices = new ArrayList<>() {{
             add(new VertexSettings("A", new ArrayList<>() {{
@@ -122,15 +119,15 @@ public class CoordinatorAgent2 extends Agent {
         startupSettings.Agents.add(haska);
     }
 
-    private void CreateAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {
+    private void createAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {
         for (var settings : agentSettings) {
             getContainerController()
-                    .createNewAgent(settings.Name, GetClassByType(settings.Type), new Object[]{settings})
+                    .createNewAgent(settings.Name, getClassByType(settings.Type), new Object[]{settings})
                     .start();
         }
     }
 
-    private String GetClassByType(AgentType type) {
+    private String getClassByType(AgentType type) {
         switch (type){
             case Static:
                 return StaticAgent.class.getName();

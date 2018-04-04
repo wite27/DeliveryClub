@@ -10,20 +10,20 @@ import java.util.ArrayList;
 /**
  * Created by K750JB on 24.03.2018.
  */
-public class Map {
-    private static Map ourInstance = new Map();
+public class CityMap {
+    private static CityMap ourInstance = new CityMap();
 
     private FloydWarshallShortestPaths<String, DefaultWeightedEdge> shortestPaths;
 
     public SimpleWeightedGraph<String, DefaultWeightedEdge> Graph =
             new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
 
-    public static Map GetInstance() {
+    public static CityMap getInstance() {
         return ourInstance;
     }
-    private Map() {}
+    private CityMap() {}
 
-    public Map Initialize(ArrayList<VertexSettings> vertices) {
+    public CityMap Initialize(ArrayList<VertexSettings> vertices) {
         for (VertexSettings vertex : vertices)
         {
             Graph.addVertex(vertex.Name);
@@ -44,7 +44,7 @@ public class Map {
         return this;
     }
 
-    public int GetPathWeight(String source, String to)
+    public int getPathWeight(String source, String to)
     {
         return (int) shortestPaths.getPathWeight(source, to);
     }

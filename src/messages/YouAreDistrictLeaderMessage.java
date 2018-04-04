@@ -15,7 +15,7 @@ public class YouAreDistrictLeaderMessage extends ACLMessage {
         this.addReceiver(leader.getName());
     }
 
-    public static MessageTemplate Template(){
+    public static MessageTemplate template(){
         return new MessageTemplate(msg ->
                 msg.getPerformative() == Performative
                 && msg.getContent().equals(YouAreDistrictLeaderMessage.Content));

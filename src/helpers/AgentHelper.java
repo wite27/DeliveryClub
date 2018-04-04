@@ -11,7 +11,7 @@ import models.Consts;
 
 public class AgentHelper {
 
-    public static DFAgentDescription[] FindAgents(Agent self, AgentType type)
+    public static DFAgentDescription[] findAgents(Agent self, AgentType type)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();
@@ -27,7 +27,7 @@ public class AgentHelper {
         }
     }
 
-    public static DFAgentDescription[] FindAgents(Agent self, AgentType type, int district)
+    public static DFAgentDescription[] findAgents(Agent self, AgentType type, int district)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();
@@ -44,7 +44,7 @@ public class AgentHelper {
         }
     }
 
-    public static DFAgentDescription[] FindAgents(Agent self, int district)
+    public static DFAgentDescription[] findAgents(Agent self, int district)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();

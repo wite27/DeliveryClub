@@ -10,6 +10,7 @@ import jade.lang.acl.MessageTemplate;
 
 import java.util.function.Consumer;
 
+@Deprecated
 public class ReceiverWithHandlerBehaviour extends SequentialBehaviour {
     public ReceiverWithHandlerBehaviour(Agent agent, long timeout, MessageTemplate template, Consumer<ACLMessage> handlerFn) {
         super(agent);
@@ -21,7 +22,7 @@ public class ReceiverWithHandlerBehaviour extends SequentialBehaviour {
             public void action() {
                 try {
                     var message = receiver.getMessage();
-                    Log.MessageReceived(agent, message);
+                    Log.messageReceived(agent, message);
                     handlerFn.accept(message);
                 } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                     timedOut.printStackTrace();
