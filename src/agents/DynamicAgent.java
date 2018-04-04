@@ -1,9 +1,11 @@
 package agents;
 
+import behaviours.CyclicReceiverWithHandlerBehaviour;
 import behaviours.ReceiverWithHandlerBehaviour;
 import environment.CityMap;
 import environment.Store;
 import helpers.Log;
+import helpers.MessageHelper;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
@@ -28,8 +30,7 @@ public class DynamicAgent extends AgentBase {
 
         init();
         registerOnYellowPages(type, district);
-
-        startListenYouAreLeaderMessage();
+        startAskingForDelivery();
         startListenHowMuchCostDeliveryToRegion();
     }
 
@@ -44,14 +45,18 @@ public class DynamicAgent extends AgentBase {
 
     private void startListenHowMuchCostDeliveryToRegion() {
         var mt = new MessageTemplate(msg ->
-            msg.getPerformative() == ACLMessage.REQUEST
+            msg.getPerformative() == ACLMessage.CFP
             && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
         );
-        addBehaviour(new ReceiverWithHandlerBehaviour(this, 10000, mt, aclMessage -> {
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
-
-            var answer = new ACLMessage(ACLMessage.AGREE);
-            answer.setContent(Consts.IWillDeliverToDistrictPrefix + String.valueOf(calculateDeliveryCost()));
+            var answer = MessageHelper.BuildMessage(
+                    ACLMessage.PROPOSE,
+                    Consts.IWillDeliverToDistrictPrefix,
+                    String.valueOf(calculateDeliveryCost()),
+                    this.route.get(0),
+                    this.route.get(1)
+            );
             answer.addReceiver(answerTo);
 
             send(answer);
@@ -61,7 +66,7 @@ public class DynamicAgent extends AgentBase {
     private int calculateDeliveryCost()
     {
         var home = route.get(0);
-        var work = route.get(route.size() - 1);
+        var work = route.get(1);
         var store = Store.getInstance().getName();
         var map = CityMap.getInstance();
 

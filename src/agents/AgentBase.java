@@ -1,8 +1,8 @@
 package agents;
 
+import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
-import behaviours.DistrictLeaderBehaviour;
-import behaviours.ReceiverWithHandlerBehaviour;
+import behaviours.AskForDeliveryInDistrictBehaviour;
 import helpers.Log;
 import jade.core.Agent;
 import jade.domain.DFService;
@@ -10,9 +10,13 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import messages.YouAreDistrictLeaderMessage;
 import models.AgentType;
 import models.Consts;
+
+import java.util.Comparator;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -28,12 +32,27 @@ public class AgentBase extends Agent {
         register(sd);
     }
 
-    protected void startListenYouAreLeaderMessage() {
-        var template = YouAreDistrictLeaderMessage.template();
-        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, template, aclMessage -> {
-            Log.fromAgent(this, " got leader message from " + aclMessage.getSender().getName());
-            addBehaviour(new DistrictLeaderBehaviour(this));
-        }));
+    protected void startAskingForDelivery() {
+        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
+        addBehaviour(askForDeliveryInDistrictBehaviour);
+
+        var mt = new MessageTemplate(msg ->
+                msg.getPerformative() == ACLMessage.PROPOSE
+                        && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
+        );
+        addBehaviour(new BatchReceiverWithHandlerBehaviour(this,
+                askForDeliveryInDistrictBehaviour.getReceiversCount(),
+                10000,
+                mt,
+                aclMessages -> {
+                    var bestDeal = aclMessages.stream()
+                            .min(Comparator.comparingInt(o ->
+                                    Integer.parseInt(o.getContent().substring(Consts.IWillDeliverToDistrictPrefix.length()))))
+                            .get(); // TODO isPresent() check
+
+                    Log.fromAgent(this,"choosed best deal: " + bestDeal.getContent() +
+                            " from " + bestDeal.getSender().getName());
+                }));
     }
 
     public int getDistrict() {

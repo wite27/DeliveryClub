@@ -20,7 +20,7 @@ public class StaticAgent extends AgentBase {
         init();
         registerOnYellowPages(type, district);
 
-        startListenYouAreLeaderMessage();
+        startAskingForDelivery();
     }
 
     private void init() {
