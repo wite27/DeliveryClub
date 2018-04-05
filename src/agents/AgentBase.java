@@ -4,6 +4,7 @@ import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import behaviours.AskForDeliveryInDistrictBehaviour;
 import helpers.Log;
+import helpers.MessageHelper;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -47,7 +48,10 @@ public class AgentBase extends Agent {
                 aclMessages -> {
                     var bestDeal = aclMessages.stream()
                             .min(Comparator.comparingInt(o ->
-                                    Integer.parseInt(o.getContent().substring(Consts.IWillDeliverToDistrictPrefix.length()))))
+                            {
+                                String[] messageParams = MessageHelper.getParams(o.getContent());
+                                return Integer.parseInt(messageParams[1]);
+                            }))
                             .get(); // TODO isPresent() check
 
                     Log.fromAgent(this,"choosed best deal: " + bestDeal.getContent() +
