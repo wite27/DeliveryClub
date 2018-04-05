@@ -1,7 +1,6 @@
 package agents;
 
 import behaviours.CyclicReceiverWithHandlerBehaviour;
-import behaviours.ReceiverWithHandlerBehaviour;
 import environment.CityMap;
 import environment.Store;
 import helpers.Log;
