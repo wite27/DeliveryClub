@@ -49,7 +49,7 @@ public class DynamicAgent extends AgentBase {
         );
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
-            var answer = MessageHelper.BuildMessage(
+            var answer = MessageHelper.buildMessage(
                     ACLMessage.PROPOSE,
                     Consts.IWillDeliverToDistrictPrefix,
                     String.valueOf(calculateDeliveryCost()),

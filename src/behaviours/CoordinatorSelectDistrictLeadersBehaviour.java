@@ -9,6 +9,7 @@ import messages.YouAreDistrictLeaderMessage;
 
 import java.util.Random;
 
+@Deprecated
 public class CoordinatorSelectDistrictLeadersBehaviour extends OneShotBehaviour {
     private final Random random;
     private CoordinatorAgent2 agent;

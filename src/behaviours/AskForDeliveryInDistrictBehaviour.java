@@ -2,16 +2,11 @@ package behaviours;
 
 import agents.AgentBase;
 import helpers.AgentHelper;
-import helpers.Log;
 import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
 import models.AgentType;
 import models.Consts;
-
-import java.util.Comparator;
 
 public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private AgentBase agent;
@@ -27,12 +22,11 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
 
     @Override
     public void action() {
-        var msg = new ACLMessage(ACLMessage.REQUEST);
+        var msg = new ACLMessage(ACLMessage.CFP);
         msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
         for (var potentialCourier: dynamicAgentsInThisDistrict) {
             msg.addReceiver(potentialCourier.getName());
         }
-
         agent.send(msg);
     }
 

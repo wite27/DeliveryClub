@@ -28,15 +28,6 @@ public class CoordinatorAgent2 extends Agent {
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
-
-        var self = this;
-        addBehaviour(new TickerBehaviour(this, 100) { // wait other agents to register on yellow pages
-            @Override
-            protected void onTick() {
-                addBehaviour(new CoordinatorSelectDistrictLeadersBehaviour(self));
-                stop();
-            }
-        });
     }
 
     public int[] getAllDistricts() {
