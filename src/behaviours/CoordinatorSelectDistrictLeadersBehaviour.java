@@ -31,9 +31,9 @@ public class CoordinatorSelectDistrictLeadersBehaviour extends OneShotBehaviour 
 
     private void RandomlyChooseLeaderAndSendMessage(int district) {
         var agents = AgentHelper.findAgents(agent, district);
-        var leaderIndex = ChooseLeaderIndex(agents.length);
+        var leaderIndex = ChooseLeaderIndex(agents.size());
 
-        SendMessageToLeader(agents[leaderIndex]);
+        SendMessageToLeader(agents.get(leaderIndex));
     }
 
     private int ChooseLeaderIndex(int length) {

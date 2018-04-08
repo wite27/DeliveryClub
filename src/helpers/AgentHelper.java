@@ -9,6 +9,9 @@ import jade.domain.FIPAException;
 import models.AgentType;
 import models.Consts;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class AgentHelper {
 
     public static DFAgentDescription[] findAgents(Agent self, AgentType type)
@@ -27,7 +30,7 @@ public class AgentHelper {
         }
     }
 
-    public static DFAgentDescription[] findAgents(Agent self, AgentType type, int district)
+    public static ArrayList<DFAgentDescription> findAgents(Agent self, AgentType type, int district)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();
@@ -35,28 +38,28 @@ public class AgentHelper {
             sd.setType(type.name());
             sd.addProperties(new Property(Consts.District, district));
             dfd.addServices(sd);
-            DFAgentDescription[] result = DFService.search(self, dfd);
+            var result = new ArrayList<>(Arrays.asList(DFService.search(self, dfd)));
             return result;
         }
         catch (FIPAException fe) {
             fe.printStackTrace();
-            return new DFAgentDescription[0];
+            return new ArrayList<>();
         }
     }
 
-    public static DFAgentDescription[] findAgents(Agent self, int district)
+    public static ArrayList<DFAgentDescription> findAgents(Agent self, int district)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();
             ServiceDescription sd = new ServiceDescription();
             sd.addProperties(new Property(Consts.District, district));
             dfd.addServices(sd);
-            DFAgentDescription[] result = DFService.search(self, dfd);
+            var result =  new ArrayList<>(Arrays.asList(DFService.search(self, dfd)));
             return result;
         }
         catch (FIPAException fe) {
             fe.printStackTrace();
-            return new DFAgentDescription[0];
+            return new ArrayList<>();
         }
     }
 }

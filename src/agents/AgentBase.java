@@ -3,6 +3,8 @@ package agents;
 import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import behaviours.AskForDeliveryInDistrictBehaviour;
+import environment.CityMap;
+import environment.Store;
 import helpers.Log;
 import helpers.MessageHelper;
 import jade.core.Agent;
@@ -17,6 +19,7 @@ import messages.YouAreDistrictLeaderMessage;
 import models.AgentType;
 import models.Consts;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 
 /**
@@ -24,6 +27,7 @@ import java.util.Comparator;
  */
 public class AgentBase extends Agent {
     protected int district;
+    protected ArrayList<String> route;
 
     protected void registerOnYellowPages(AgentType agentType, int district) {
         ServiceDescription sd  = new ServiceDescription();
@@ -33,30 +37,11 @@ public class AgentBase extends Agent {
         register(sd);
     }
 
-    protected void startAskingForDelivery() {
-        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
-        addBehaviour(askForDeliveryInDistrictBehaviour);
 
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.PROPOSE
-                        && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
-        );
-        addBehaviour(new BatchReceiverWithHandlerBehaviour(this,
-                askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                10000,
-                mt,
-                aclMessages -> {
-                    var bestDeal = aclMessages.stream()
-                            .min(Comparator.comparingInt(o ->
-                            {
-                                String[] messageParams = MessageHelper.getParams(o.getContent());
-                                return Integer.parseInt(messageParams[1]);
-                            }))
-                            .get(); // TODO isPresent() check
 
-                    Log.fromAgent(this,"choosed best deal: " + bestDeal.getContent() +
-                            " from " + bestDeal.getSender().getName());
-                }));
+    protected String getHome()
+    {
+        return route.get(0);
     }
 
     public int getDistrict() {
@@ -73,5 +58,11 @@ public class AgentBase extends Agent {
             DFService.register(this, dfd);
         }
         catch (FIPAException fe) { fe.printStackTrace(); }
+    }
+
+    protected int calculateBestDeliveryPoint(String pointA, String pointB, String agentHome)
+    {
+        var map = CityMap.getInstance();
+        return Math.min(map.getPathWeight(pointA, agentHome), map.getPathWeight(pointB, agentHome));
     }
 }
