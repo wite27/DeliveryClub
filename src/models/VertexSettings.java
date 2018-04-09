@@ -9,7 +9,7 @@ public class VertexSettings {
     public String Name;
 
     public ArrayList<String> AdjacentVertices;
-
+    public VertexSettings(){}
     public VertexSettings(String name, ArrayList<String> adjacentVertices)
     {
         this.Name = name;

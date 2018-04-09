@@ -1,14 +1,15 @@
 package agents;
 
-import behaviours.CoordinatorSelectDistrictLeadersBehaviour;
+import com.alibaba.fastjson.JSON;
 import environment.CityMap;
 import environment.Store;
 import jade.core.Agent;
-import jade.core.behaviours.TickerBehaviour;
 import jade.wrapper.StaleProxyException;
 import models.*;
+import org.apache.commons.io.FileUtils;
 
-
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -20,7 +21,14 @@ public class CoordinatorAgent2 extends Agent {
     @Override
     protected void setup() {
         super.setup();
-        createStartupSettings();
+        File input = FileUtils.getFile("input.json");
+        String str = null;
+        try {
+            str = FileUtils.readFileToString(input,"utf-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        startupSettings = JSON.parseObject(str, StartupSettings.class);
         try {
             CityMap.getInstance().Initialize(startupSettings.Vertices);
             Store.getInstance().Initialize(startupSettings.Store);
@@ -34,83 +42,7 @@ public class CoordinatorAgent2 extends Agent {
         return new int[] {0}; // TODO read from settings
     }
 
-    private void createStartupSettings() {
-        startupSettings = new StartupSettings();
-        startupSettings.Vertices = new ArrayList<>() {{
-            add(new VertexSettings("A", new ArrayList<>() {{
-                add("B");
-                add("E");
-            }}));
-            add(new VertexSettings("B", new ArrayList<>() {{
-                add("A");
-                add("S");
-                add("C");
-            }}));
-            add(new VertexSettings("C", new ArrayList<>() {{
-                add("B");
-                add("D");
-            }}));
-            add(new VertexSettings("D", new ArrayList<>() {{
-                add("C");
-                add("F");
-            }}));
-            add(new VertexSettings("F", new ArrayList<>() {{
-                add("D");
-                add("E");
-            }}));
-            add(new VertexSettings("E", new ArrayList<>() {{
-                add("F");
-                add("A");
-            }}));
-            add(new VertexSettings("S", new ArrayList<>() {{
-                add("B");
-            }}));
-        }};
-
-        startupSettings.Store = new StoreSettings() {{
-            Name = "S";
-            ProductsCount = 5;
-        }};
-
-        startupSettings.Agents = new ArrayList<>();
-
-        var anna = new AgentSettings() {{
-            Name = "Anna";
-            District = 0;
-            NeededProductsCount = 0;
-            Type = AgentType.Static;
-            Route = new ArrayList<>(){{
-                add("D");
-            }};
-        }};
-        startupSettings.Agents.add(anna);
-
-        var andrey = new AgentSettings(){{
-            Name = "Andrey";
-            District = 0;
-            NeededProductsCount = 0;
-            Type = AgentType.Dynamic;
-            Route = new ArrayList<>() {{
-                add("A");
-                add("C");
-            }};
-        }};
-        startupSettings.Agents.add(andrey);
-
-        var haska = new AgentSettings() {{
-            Name = "Haska";
-            District = 0;
-            NeededProductsCount = 0;
-            Type = AgentType.Dynamic;
-            Route = new ArrayList<>() {{
-                add("E");
-                add("D");
-            }};
-        }};
-        startupSettings.Agents.add(haska);
-    }
-
-    private void createAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {
+       private void createAgents(ArrayList<AgentSettings> agentSettings) throws StaleProxyException {
         for (var settings : agentSettings) {
             getContainerController()
                     .createNewAgent(settings.Name, getClassByType(settings.Type), new Object[]{settings})
