@@ -40,7 +40,7 @@ public class CityMap {
             }
         }
         shortestPaths = new FloydWarshallShortestPaths<>(Graph);
-
+        shortestPaths.getShortestPathsCount(); // force calculating
         return this;
     }
 
