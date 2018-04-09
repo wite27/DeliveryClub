@@ -9,7 +9,6 @@ import models.AgentType;
 import models.Consts;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private AgentBase agent;
@@ -23,7 +22,8 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
                 .findAgents(
                         agent,
                         AgentType.Dynamic,
-                        agent.getDistrict()).stream().filter(x -> !x.getName().equals(agent.getAID())).collect(Collectors.toCollection(ArrayList::new));
+                        agent.getDistrict(),
+                        false);
     }
 
     @Override

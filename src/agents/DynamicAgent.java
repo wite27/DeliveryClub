@@ -14,7 +14,6 @@ import models.AgentSettings;
 import models.AgentType;
 import models.Consts;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
@@ -80,9 +79,9 @@ public class DynamicAgent extends AgentBase {
                 aclMessages -> {
                     var myDeliveryCost = calculateDeliveryCost();
                     var bestDeals = aclMessages.stream()
-                            .sorted(Comparator.comparingInt(this::getDeliveryCost))
+                            .sorted(Comparator.comparingInt(this::getProposeDeliveryCost))
                             .limit((long) Math.ceil(aclMessages.size()*0.1))
-                            .filter(x -> getDeliveryCost(x) < myDeliveryCost).collect(Collectors.toList());
+                            .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost).collect(Collectors.toList());
                     if (bestDeals.size() > 0)
                     {
                         var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
@@ -98,7 +97,7 @@ public class DynamicAgent extends AgentBase {
                     else
                     {
                         var agentsInThisDistrict = AgentHelper
-                                .findAgents(this, this.getDistrict());
+                                .findAgents(this, this.getDistrict(), false);
                         var msg = new ACLMessage(ACLMessage.INFORM);
                         msg.setContent(Consts.IWillGoToStore);
                         for (var agent: agentsInThisDistrict) {
@@ -112,7 +111,7 @@ public class DynamicAgent extends AgentBase {
         ));
     }
 
-    private int getDeliveryCost(ACLMessage x) {
+    private int getProposeDeliveryCost(ACLMessage x) {
         var messageParams = MessageHelper.getParams(x.getContent());
         var cost = messageParams[1];
         var pointA = messageParams[2];
