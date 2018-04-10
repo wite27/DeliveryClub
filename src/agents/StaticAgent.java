@@ -2,6 +2,7 @@ package agents;
 
 import behaviours.AskForDeliveryInDistrictBehaviour;
 import behaviours.BatchReceiverWithHandlerBehaviour;
+import environment.CityMap;
 import helpers.Log;
 import helpers.MessageHelper;
 import jade.lang.acl.ACLMessage;
@@ -54,16 +55,8 @@ public class StaticAgent extends AgentBase {
                 mt,
                 aclMessages -> {
                     var bestDeal = aclMessages.stream()
-                            .sorted(Comparator.comparingInt(o ->
-                            {
-                                var messageParams = MessageHelper.getParams(o.getContent());
-                                var cost = messageParams[1];
-                                var pointA = messageParams[2];
-                                var pointB = messageParams[3];
-                                return Integer.parseInt(cost)
-                                        + calculateBestDeliveryPoint(pointA, pointB, getHome());
-                            }))
-                            .limit((long) Math.ceil(aclMessages.size()*0.1)); // TODO isPresent() check
+                            .sorted(Comparator.comparingInt(this::getProposeDeliveryCost))
+                            .limit((long) Math.ceil(aclMessages.size() * 0.1));
                     var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
                     message.setContent("I_CHOOSE_YOU");
                     bestDeal.forEach(x ->
@@ -74,5 +67,17 @@ public class StaticAgent extends AgentBase {
                     });
                     this.send(message);
                 }));
+    }
+
+    private int getProposeDeliveryCost(ACLMessage x) {
+        var messageParams = MessageHelper.getParams(x.getContent());
+        var cost = messageParams[1];
+        var pointA = messageParams[2];
+        var pointB = messageParams[3];
+        return Integer.parseInt(cost) + calculateBestDeliveryPoint(pointA, pointB);
+    }
+    @Override
+    protected int calculateCostToPoint(String point) {
+        return CityMap.getInstance().getPathWeight(getHome(), point);
     }
 }

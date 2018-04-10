@@ -25,19 +25,19 @@ import java.util.Comparator;
 /**
  * Created by K750JB on 24.03.2018.
  */
-public class AgentBase extends Agent {
+public abstract class AgentBase extends Agent {
     protected int district;
     protected ArrayList<String> route;
 
+    protected abstract int calculateCostToPoint(String point);
+
     protected void registerOnYellowPages(AgentType agentType, int district) {
-        ServiceDescription sd  = new ServiceDescription();
+        var sd  = new ServiceDescription();
         sd.setType(agentType.name());
         sd.setName(getLocalName());
         sd.addProperties(new Property(Consts.District, district));
         register(sd);
     }
-
-
 
     protected String getHome()
     {
@@ -50,7 +50,7 @@ public class AgentBase extends Agent {
 
     private void register( ServiceDescription sd)
     {
-        DFAgentDescription dfd = new DFAgentDescription();
+        var dfd = new DFAgentDescription();
         dfd.setName(getAID());
 
         dfd.addServices(sd);
@@ -60,9 +60,16 @@ public class AgentBase extends Agent {
         catch (FIPAException fe) { fe.printStackTrace(); }
     }
 
-    protected int calculateBestDeliveryPoint(String pointA, String pointB, String agentHome)
+    protected int calculateBestDeliveryPoint(String pointA, String pointB)
+    {
+        return Math.min(calculateCostToPoint(pointA),
+                        calculateCostToPoint(pointB));
+    }
+
+
+    private int calculateDeliveryCostPoint(String pointA, String pointB, String myPoint)
     {
         var map = CityMap.getInstance();
-        return Math.min(map.getPathWeight(pointA, agentHome), map.getPathWeight(pointB, agentHome));
+        return Math.min(map.getPathWeight(pointA, myPoint), map.getPathWeight(pointB, myPoint));
     }
 }

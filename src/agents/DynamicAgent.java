@@ -25,6 +25,8 @@ public class DynamicAgent extends AgentBase {
 
     private int neededProductsCount;
     private int currentMoney;
+    private boolean isGoingToStore = false;
+    private int votesForMe = 0;
 
     @Override
     protected void setup() {
@@ -34,6 +36,7 @@ public class DynamicAgent extends AgentBase {
         registerOnYellowPages(type, district);
         startAskingForDelivery();
         startListenHowMuchCostDeliveryToRegion();
+        startCountVotes();
     }
 
     private void init() {
@@ -56,14 +59,15 @@ public class DynamicAgent extends AgentBase {
                     ACLMessage.PROPOSE,
                     Consts.IWillDeliverToDistrictPrefix,
                     String.valueOf(calculateDeliveryCost()),
-                    this.route.get(0),
-                    this.route.get(1)
+                    getHome(),
+                    getWork()
             );
             answer.addReceiver(answerTo);
 
             send(answer);
         }));
     }
+
     private void startAskingForDelivery() {
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
         addBehaviour(askForDeliveryInDistrictBehaviour);
@@ -81,7 +85,8 @@ public class DynamicAgent extends AgentBase {
                     var bestDeals = aclMessages.stream()
                             .sorted(Comparator.comparingInt(this::getProposeDeliveryCost))
                             .limit((long) Math.ceil(aclMessages.size()*0.1))
-                            .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost).collect(Collectors.toList());
+                            .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
+                            .collect(Collectors.toList());
                     if (bestDeals.size() > 0)
                     {
                         var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
@@ -96,19 +101,47 @@ public class DynamicAgent extends AgentBase {
                     }
                     else
                     {
-                        var agentsInThisDistrict = AgentHelper
-                                .findAgents(this, this.getDistrict(), false);
-                        var msg = new ACLMessage(ACLMessage.INFORM);
-                        msg.setContent(Consts.IWillGoToStore);
-                        for (var agent: agentsInThisDistrict) {
-                            Log.fromAgent(this,"send " + msg.getContent() +
-                                    " to " + agent.getName());
-                            msg.addReceiver(agent.getName());
-                        }
-                        this.send(msg);
+                        goToStoreAndNotify();
                     }
                 }
         ));
+    }
+
+    private void goToStoreAndNotify() {
+        if (this.isGoingToStore) // we are going to store already
+            return;
+
+        this.isGoingToStore = true;
+        Log.fromAgent(this," will go to store");
+
+        var agentsInThisDistrict = AgentHelper
+                .findAgents(this, this.getDistrict(), false);
+        var msg = new ACLMessage(ACLMessage.INFORM);
+        msg.setContent(Consts.IWillGoToStore);
+        for (var agent: agentsInThisDistrict) {
+            msg.addReceiver(agent.getName());
+        }
+        this.send(msg);
+    }
+
+    private void startCountVotes(){
+        var maxVotesCount = AgentHelper
+                .findAgents(this, getDistrict(), false)
+                .size();
+        var neededVotesCount = (int) (maxVotesCount * Consts.VotesThreshold);
+
+        var mt = new MessageTemplate(msg ->
+                msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL
+                && msg.getContent().equals(Consts.IChooseYou));
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
+            votesForMe++;
+
+            if (votesForMe >= neededVotesCount)
+            {
+                goToStoreAndNotify();
+            }
+        }));
     }
 
     private int getProposeDeliveryCost(ACLMessage x) {
@@ -116,22 +149,29 @@ public class DynamicAgent extends AgentBase {
         var cost = messageParams[1];
         var pointA = messageParams[2];
         var pointB = messageParams[3];
-        return Integer.parseInt(cost) + calculateBestDeliveryPoint(pointA, pointB, getHome());
+        return Integer.parseInt(cost) + calculateBestDeliveryPoint(pointA, pointB);
     }
 
     private int calculateDeliveryCost()
     {
-        var home = getHome();
-        var work = route.get(1);
         var store = Store.getInstance().getName();
+        return calculateCostToPoint(store);
+    }
+
+    private String getWork() {
+        return this.route.get(route.size() - 1);
+    }
+
+    @Override
+    protected int calculateCostToPoint(String point) {
+        var home = getHome();
+        var work = getWork();
         var map = CityMap.getInstance();
 
-        var costWithoutStore = map.getPathWeight(home, work);
-        Log.fromAgent(this, " without store = " + costWithoutStore);
-        var costWithStore = map.getPathWeight(home, store) + map.getPathWeight(store, work);
-        Log.fromAgent(this, " with store = " + costWithStore);
+        var costWithoutPoint = map.getPathWeight(home, work);
+        var costWithPoint = map.getPathWeight(home, point) + map.getPathWeight(point, work);
 
-        var delta = (costWithStore - costWithoutStore);
+        var delta = (costWithPoint - costWithoutPoint);
 
         return delta > 0
                 ? delta
