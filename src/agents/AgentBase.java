@@ -29,7 +29,7 @@ public abstract class AgentBase extends Agent {
     protected int district;
     protected ArrayList<String> route;
 
-    protected abstract int calculateCostToPoint(String point);
+    protected abstract double calculateCostToPoint(String point);
 
     protected void registerOnYellowPages(AgentType agentType, int district) {
         var sd  = new ServiceDescription();
@@ -60,14 +60,14 @@ public abstract class AgentBase extends Agent {
         catch (FIPAException fe) { fe.printStackTrace(); }
     }
 
-    protected int calculateBestDeliveryPoint(String pointA, String pointB)
+    protected double calculateBestDeliveryPoint(String pointA, String pointB)
     {
         return Math.min(calculateCostToPoint(pointA),
                         calculateCostToPoint(pointB));
     }
 
 
-    private int calculateDeliveryCostPoint(String pointA, String pointB, String myPoint)
+    private double calculateDeliveryCostPoint(String pointA, String pointB, String myPoint)
     {
         var map = CityMap.getInstance();
         return Math.min(map.getPathWeight(pointA, myPoint), map.getPathWeight(pointB, myPoint));

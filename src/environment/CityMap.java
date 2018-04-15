@@ -44,8 +44,8 @@ public class CityMap {
         return this;
     }
 
-    public int getPathWeight(String source, String to)
+    public double getPathWeight(String source, String to)
     {
-        return (int) shortestPaths.getPathWeight(source, to);
+        return shortestPaths.getPathWeight(source, to);
     }
 }

@@ -55,7 +55,7 @@ public class StaticAgent extends AgentBase {
                 mt,
                 aclMessages -> {
                     var bestDeal = aclMessages.stream()
-                            .sorted(Comparator.comparingInt(this::getProposeDeliveryCost))
+                            .sorted(Comparator.comparingDouble(this::getProposeDeliveryCost))
                             .limit((long) Math.ceil(aclMessages.size() * 0.1));
                     var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
                     message.setContent("I_CHOOSE_YOU");
@@ -69,15 +69,15 @@ public class StaticAgent extends AgentBase {
                 }));
     }
 
-    private int getProposeDeliveryCost(ACLMessage x) {
+    private double getProposeDeliveryCost(ACLMessage x) {
         var messageParams = MessageHelper.getParams(x.getContent());
         var cost = messageParams[1];
         var pointA = messageParams[2];
         var pointB = messageParams[3];
-        return Integer.parseInt(cost) + calculateBestDeliveryPoint(pointA, pointB);
+        return Double.parseDouble(cost) + calculateBestDeliveryPoint(pointA, pointB);
     }
     @Override
-    protected int calculateCostToPoint(String point) {
+    protected double calculateCostToPoint(String point) {
         return CityMap.getInstance().getPathWeight(getHome(), point);
     }
 }

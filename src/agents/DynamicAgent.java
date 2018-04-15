@@ -83,7 +83,7 @@ public class DynamicAgent extends AgentBase {
                 aclMessages -> {
                     var myDeliveryCost = calculateDeliveryCost();
                     var bestDeals = aclMessages.stream()
-                            .sorted(Comparator.comparingInt(this::getProposeDeliveryCost))
+                            .sorted(Comparator.comparingDouble(this::getProposeDeliveryCost))
                             .limit((long) Math.ceil(aclMessages.size()*0.1))
                             .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
                             .collect(Collectors.toList());
@@ -144,15 +144,15 @@ public class DynamicAgent extends AgentBase {
         }));
     }
 
-    private int getProposeDeliveryCost(ACLMessage x) {
+    private double getProposeDeliveryCost(ACLMessage x) {
         var messageParams = MessageHelper.getParams(x.getContent());
         var cost = messageParams[1];
         var pointA = messageParams[2];
         var pointB = messageParams[3];
-        return Integer.parseInt(cost) + calculateBestDeliveryPoint(pointA, pointB);
+        return Double.parseDouble(cost) + calculateBestDeliveryPoint(pointA, pointB);
     }
 
-    private int calculateDeliveryCost()
+    private double calculateDeliveryCost()
     {
         var store = Store.getInstance().getName();
         return calculateCostToPoint(store);
@@ -163,7 +163,7 @@ public class DynamicAgent extends AgentBase {
     }
 
     @Override
-    protected int calculateCostToPoint(String point) {
+    protected double calculateCostToPoint(String point) {
         var home = getHome();
         var work = getWork();
         var map = CityMap.getInstance();
