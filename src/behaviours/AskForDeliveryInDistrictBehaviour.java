@@ -10,7 +10,6 @@ import models.AgentType;
 import models.Consts;
 
 import java.util.ArrayList;
-import java.util.UUID;
 
 public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private AgentBase agent;

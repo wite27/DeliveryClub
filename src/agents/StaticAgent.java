@@ -20,35 +20,20 @@ import java.util.UUID;
  * Created by K750JB on 24.03.2018.
  */
 public class StaticAgent extends AgentBase {
-    private final AgentType type = AgentType.Static;
-
-    private int neededProductsCount;
-    private int currentMoney;
-    private String currentConversationId;
+    public StaticAgent(){
+        type = AgentType.Static;
+    }
 
     @Override
     protected void setup() {
         super.setup();
 
-        init();
-        registerOnYellowPages(type, district);
-
         startAskingForDelivery();
-    }
-
-    private void init() {
-        Object[] args = getArguments();
-        AgentSettings settings = (AgentSettings)args[0];
-        neededProductsCount = settings.NeededProductsCount;
-        route = settings.Route;
-        currentMoney = settings.StartMoney;
-        district = settings.District;
     }
 
     private void startAskingForDelivery() {
         var sequentialBehaviour = new SequentialBehaviour();
 
-        currentConversationId = UUID.randomUUID().toString();
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
                 currentConversationId);
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);

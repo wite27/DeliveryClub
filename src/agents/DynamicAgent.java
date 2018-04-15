@@ -4,6 +4,7 @@ import behaviours.AskForDeliveryInDistrictBehaviour;
 import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import environment.CityMap;
+import environment.GlobalParams;
 import environment.Store;
 import helpers.AgentHelper;
 import helpers.Log;
@@ -24,31 +25,20 @@ import java.util.stream.Collectors;
  * Created by K750JB on 24.03.2018.
  */
 public class DynamicAgent extends AgentBase {
-    private final AgentType type = AgentType.Dynamic;
-
-    private int neededProductsCount;
-    private int currentMoney;
     private boolean isGoingToStore = false;
     private int votesForMe = 0;
-    private String currentConversationId;
+
+    public DynamicAgent(){
+        type = AgentType.Dynamic;
+    }
 
     @Override
     protected void setup() {
         super.setup();
 
-        init();
-        registerOnYellowPages(type, district);
         startAskingForDelivery();
         startListenHowMuchCostDeliveryToDistrict();
-    }
-
-    private void init() {
-        var args = getArguments();
-        var settings = (AgentSettings)args[0];
-        neededProductsCount = settings.NeededProductsCount;
-        route = settings.Route;
-        currentMoney = settings.StartMoney;
-        district = settings.District;
+        startCountVotes();
     }
 
     private void startListenHowMuchCostDeliveryToDistrict() {
@@ -75,7 +65,6 @@ public class DynamicAgent extends AgentBase {
     private void startAskingForDelivery() {
         var sequentialBehaviour = new SequentialBehaviour(this);
 
-        currentConversationId = UUID.randomUUID().toString();
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
                 currentConversationId);
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
@@ -117,13 +106,6 @@ public class DynamicAgent extends AgentBase {
                 ));
             }
         });
-        sequentialBehaviour.addSubBehaviour(new OneShotBehaviour() {
-            @Override
-            public void action() {
-                startCountVotes();
-            }
-        });
-
 
         addBehaviour(sequentialBehaviour);
     }
@@ -149,7 +131,7 @@ public class DynamicAgent extends AgentBase {
         var maxVotesCount = AgentHelper
                 .findAgents(this, getDistrict(), false)
                 .size();
-        var neededVotesCount = (int) (maxVotesCount * Consts.VotesThreshold);
+        var neededVotesCount = (int) (maxVotesCount * GlobalParams.VotesThreshold);
 
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL

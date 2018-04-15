@@ -16,24 +16,52 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.YouAreDistrictLeaderMessage;
+import models.AgentSettings;
 import models.AgentType;
 import models.Consts;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.UUID;
 
 /**
  * Created by K750JB on 24.03.2018.
  */
 public abstract class AgentBase extends Agent {
+    protected AgentType type;
     protected int district;
     protected ArrayList<String> route;
 
+    protected int neededProductsCount;
+    protected int currentMoney;
+
+    protected String currentConversationId;
+
     protected abstract double calculateCostToPoint(String point);
 
-    protected void registerOnYellowPages(AgentType agentType, int district) {
+    @Override
+    protected void setup() {
+        super.setup();
+
+        init();
+    }
+
+    private void init() {
+        var args = getArguments();
+        var settings = (AgentSettings)args[0];
+        neededProductsCount = settings.NeededProductsCount;
+        route = settings.Route;
+        currentMoney = settings.StartMoney;
+        district = settings.District;
+
+        currentConversationId = UUID.randomUUID().toString();
+
+        registerOnYellowPages();
+    }
+
+    protected void registerOnYellowPages() {
         var sd  = new ServiceDescription();
-        sd.setType(agentType.name());
+        sd.setType(type.name());
         sd.setName(getLocalName());
         sd.addProperties(new Property(Consts.District, district));
         register(sd);
@@ -64,12 +92,5 @@ public abstract class AgentBase extends Agent {
     {
         return Math.min(calculateCostToPoint(pointA),
                         calculateCostToPoint(pointB));
-    }
-
-
-    private double calculateDeliveryCostPoint(String pointA, String pointB, String myPoint)
-    {
-        var map = CityMap.getInstance();
-        return Math.min(map.getPathWeight(pointA, myPoint), map.getPathWeight(pointB, myPoint));
     }
 }
