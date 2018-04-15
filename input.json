@@ -2,7 +2,7 @@
   "Agents": [
     {
       "District": 0,
-      "Name": "Anna",
+      "Name": "S1",
       "NeededProductsCount": 0,
       "Route": [
         "D"
@@ -10,59 +10,237 @@
       "StartMoney": 0,
       "Type": "Static"
     },
-    {
+{
       "District": 0,
-      "Name": "Andrey",
+      "Name": "S2",
       "NeededProductsCount": 0,
       "Route": [
-        "A",
-        "C"
+        "I"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S3",
+      "NeededProductsCount": 0,
+      "Route": [
+        "O"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S4",
+      "NeededProductsCount": 0,
+      "Route": [
+        "K"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S5",
+      "NeededProductsCount": 0,
+      "Route": [
+        "12"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S6",
+      "NeededProductsCount": 0,
+      "Route": [
+        "8"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S7",
+      "NeededProductsCount": 0,
+      "Route": [
+        "Q"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S8",
+      "NeededProductsCount": 0,
+      "Route": [
+        "W"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+{
+      "District": 0,
+      "Name": "S9",
+      "NeededProductsCount": 0,
+      "Route": [
+        "2"
+      ],
+      "StartMoney": 0,
+      "Type": "Static"
+    },
+    {
+      "District": 0,
+      "Name": "D1",
+      "NeededProductsCount": 0,
+      "Route": [
+        "S",
+        "M"
       ],
       "StartMoney": 0,
       "Type": "Dynamic"
     },
     {
       "District": 0,
-      "Name": "Haska",
+      "Name": "D2",
       "NeededProductsCount": 0,
       "Route": [
-        "E",
-        "D"
+        "T",
+        "V"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D3",
+      "NeededProductsCount": 0,
+      "Route": [
+        "X",
+        "N"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D4",
+      "NeededProductsCount": 0,
+      "Route": [
+        "K",
+        "Y"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D5",
+      "NeededProductsCount": 0,
+      "Route": [
+        "P",
+        "Z"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D6",
+      "NeededProductsCount": 0,
+      "Route": [
+        "1",
+        "Q"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D7",
+      "NeededProductsCount": 0,
+      "Route": [
+        "5",
+        "14"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D8",
+      "NeededProductsCount": 0,
+      "Route": [
+        "13",
+        "7"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D9",
+      "NeededProductsCount": 0,
+      "Route": [
+        "3",
+        "16"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D10",
+      "NeededProductsCount": 0,
+      "Route": [
+        "11",
+        "6"
+      ],
+      "StartMoney": 0,
+      "Type": "Dynamic"
+    },
+    {
+      "District": 0,
+      "Name": "D11",
+      "NeededProductsCount": 0,
+      "Route": [
+        "17",
+        "G"
       ],
       "StartMoney": 0,
       "Type": "Dynamic"
     }
   ],
   "Store": {
-    "Name": "S",
-    "ProductsCount": 5
+    "Name": "A",
+    "ProductsCount": 400
   },
   "Vertices": [
     {
       "AdjacentVertices": [
         "B",
-        "G"
+        "C"
       ],
       "Name": "A"
     },
     {
       "AdjacentVertices": [
         "A",
-        "S",
-        "C"
+        "D"
       ],
       "Name": "B"
     },
     {
       "AdjacentVertices": [
-        "B",
-        "D"
+        "A",
+        "E"
       ],
       "Name": "C"
     },
     {
       "AdjacentVertices": [
-        "C",
+        "B",
         "F"
       ],
       "Name": "D"
@@ -70,29 +248,290 @@
     {
       "AdjacentVertices": [
         "D",
-        "E"
+        "G"
       ],
       "Name": "F"
     },
     {
       "AdjacentVertices": [
-        "F",
-        "G"
+        "C",
+        "I",
+	"J"
       ],
       "Name": "E"
     },
     {
       "AdjacentVertices": [
         "E",
-        "A"
+        "J"
+      ],
+      "Name": "I"
+    },
+    {
+      "AdjacentVertices": [
+        "E",
+	"I",
+	"K"
+      ],
+      "Name": "J"
+    },
+    {
+      "AdjacentVertices": [
+        "F",
+	"8",
+	"9"
       ],
       "Name": "G"
     },
     {
       "AdjacentVertices": [
-        "B"
+        "G",
+	"7",
+	"9"
+      ],
+      "Name": "8"
+    },
+    {
+      "AdjacentVertices": [
+        "G",
+	"17", 
+	"10",
+	"8"
+      ],
+      "Name": "9"
+    },
+    {
+      "AdjacentVertices": [
+        "E",
+	"I",
+	"K"
+      ],
+      "Name": "J"
+    },
+    {
+      "AdjacentVertices": [
+        "6",
+	"8"
+      ],
+      "Name": "7"
+    },
+    {
+      "AdjacentVertices": [
+        "7",
+	"3"
+      ],
+      "Name": "6"
+    },
+    {
+      "AdjacentVertices": [
+        "4",
+	"2",
+	"6", 
+	"12"
+      ],
+      "Name": "3"
+    },
+    {
+      "AdjacentVertices": [
+	"3", 
+	"5"
+      ],
+      "Name": "4"
+    },
+    {
+      "AdjacentVertices": [
+        "4"
+      ],
+      "Name": "5"
+    },
+    {
+      "AdjacentVertices": [
+	"9", 
+	"11"
+      ],
+      "Name": "10"
+    },
+    {
+      "AdjacentVertices": [
+	"10", 
+	"12"
+      ],
+      "Name": "11"
+    },
+    {
+      "AdjacentVertices": [
+	"13", 
+	"11", 
+	"3"
+      ],
+      "Name": "12"
+    },
+    {
+      "AdjacentVertices": [
+        "14", 
+	"12"
+      ],
+      "Name": "13"
+    },
+    {
+      "AdjacentVertices": [
+	"15", 
+	"13"
+      ],
+      "Name": "14"
+    },
+    {
+      "AdjacentVertices": [
+	"16", 
+	"14"
+      ],
+      "Name": "15"
+    },
+    {
+      "AdjacentVertices": [
+	"17", 
+	"15"
+      ],
+      "Name": "16"
+    },
+    {
+      "AdjacentVertices": [
+	"16", 
+	"9"
+      ],
+      "Name": "17"
+    },
+    {
+      "AdjacentVertices": [
+	"1", 
+	"3"
+      ],
+      "Name": "2"
+    },
+    {
+      "AdjacentVertices": [
+	"2", 
+	"Z"
+      ],
+      "Name": "1"
+    },
+    {
+      "AdjacentVertices": [
+	"O", 
+	"1"
+      ],
+      "Name": "Z"
+    },
+    {
+      "AdjacentVertices": [
+	"Z", 
+	"L", 
+	"P"
+      ],
+      "Name": "O"
+    },
+    {
+      "AdjacentVertices": [
+	"O", 
+	"K"
+      ],
+      "Name": "L"
+    },
+    {
+      "AdjacentVertices": [
+	"L", 
+	"J",
+	"M",
+	"N"
+      ],
+      "Name": "K"
+    },
+    {
+      "AdjacentVertices": [
+	"P", 
+	"K"
+      ],
+      "Name": "N"
+    },
+    {
+      "AdjacentVertices": [
+	"O", 
+	"W",
+	"Q",
+	"N"
+      ],
+      "Name": "P"
+    },
+    {
+      "AdjacentVertices": [
+	"P", 
+	"V"
+      ],
+      "Name": "W"
+    },
+    {
+      "AdjacentVertices": [
+	"U", 
+	"W"
+      ],
+      "Name": "V"
+    },
+    {
+      "AdjacentVertices": [
+	"T", 
+	"V"
+      ],
+      "Name": "U"
+    },
+    {
+      "AdjacentVertices": [
+	"U", 
+	"Q"
+      ],
+      "Name": "T"
+    },
+    {
+      "AdjacentVertices": [
+	"P", 
+	"R",
+	"Y",
+	"T"
+      ],
+      "Name": "Q"
+    },
+    {
+      "AdjacentVertices": [
+	"Q", 
+	"M",
+	"S"
+      ],
+      "Name": "R"
+    },
+    {
+      "AdjacentVertices": [
+	"K", 
+	"R"
+      ],
+      "Name": "M"
+    },
+    {
+      "AdjacentVertices": [
+	"R"
       ],
       "Name": "S"
+    },
+    {
+      "AdjacentVertices": [
+	"Q", 
+	"X"
+      ],
+      "Name": "Y"
+    },
+    {
+      "AdjacentVertices": [
+	"Y"
+      ],
+      "Name": "X"
     }
   ]
 }
