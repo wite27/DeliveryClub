@@ -8,6 +8,7 @@ import environment.Store;
 import helpers.AgentHelper;
 import helpers.Log;
 import helpers.MessageHelper;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -63,6 +64,7 @@ public class DynamicAgent extends AgentBase {
                     getHome(),
                     getWork()
             );
+            answer.setConversationId(aclMessage.getConversationId());
             answer.addReceiver(answerTo);
 
             send(answer);
@@ -75,39 +77,43 @@ public class DynamicAgent extends AgentBase {
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.PROPOSE
-                        && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
-        );
-        sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this,
-                askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                10000,
-                mt,
-                aclMessages -> {
-                    var myDeliveryCost = calculateDeliveryCost();
-                    var bestDeals = aclMessages.stream()
-                            .sorted(Comparator.comparingDouble(this::getProposeDeliveryCost))
-                            .limit((long) Math.ceil(aclMessages.size()*0.1))
-                            .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
-                            .collect(Collectors.toList());
-                    if (bestDeals.size() > 0)
-                    {
-                        var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                        message.setContent(Consts.IChooseYou);
-                        bestDeals.forEach(x ->
-                        {
-                            Log.fromAgent(this,"choosed best deal: " + x.getContent() +
-                                " from " + x.getSender().getName());
-                            message.addReceiver(x.getSender());
-                        });
-                        this.send(message);
-                    }
-                    else
-                    {
-                        goToStoreAndNotify();
-                    }
-                }
-        ));
+        var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
+        var self = this;
+        sequentialBehaviour.addSubBehaviour(new OneShotBehaviour() { // need to resolve receiversCount in lazy way
+            @Override
+            public void action() {
+                sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(self,
+                        askForDeliveryInDistrictBehaviour.getReceiversCount(),
+                        10000,
+                        mt,
+                        aclMessages -> {
+                            var myDeliveryCost = calculateDeliveryCost();
+                            var bestDeals = aclMessages.stream()
+                                    .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
+                                    .limit((long) Math.ceil(aclMessages.size()*0.1))
+                                    .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
+                                    .collect(Collectors.toList());
+                            if (bestDeals.size() > 0)
+                            {
+                                var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                                message.setContent(Consts.IChooseYou);
+                                bestDeals.forEach(x ->
+                                {
+                                    Log.fromAgent(self,"choosed best deal: " + x.getContent() +
+                                            " from " + x.getSender().getName());
+                                    message.addReceiver(x.getSender());
+                                });
+                                self.send(message);
+                            }
+                            else
+                            {
+                                goToStoreAndNotify();
+                            }
+                        }
+                ));
+            }
+        });
+
 
         addBehaviour(sequentialBehaviour);
     }
