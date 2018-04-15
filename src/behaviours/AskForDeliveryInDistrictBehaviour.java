@@ -17,10 +17,11 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private ArrayList<DFAgentDescription> dynamicAgentsInThisDistrict;
     private String conversationId;
 
-    public AskForDeliveryInDistrictBehaviour(AgentBase agent) {
+    public AskForDeliveryInDistrictBehaviour(AgentBase agent, String conversationId) {
         super(agent);
 
         this.agent = agent;
+        this.conversationId = conversationId;
     }
 
     @Override
@@ -32,7 +33,6 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
                         agent.getDistrict(),
                         false);
 
-        conversationId = UUID.randomUUID().toString();
         var msg = new ACLMessage(ACLMessage.CFP);
         msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
         msg.setConversationId(conversationId);

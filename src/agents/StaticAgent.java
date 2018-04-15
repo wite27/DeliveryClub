@@ -14,6 +14,7 @@ import models.AgentType;
 import models.Consts;
 
 import java.util.Comparator;
+import java.util.UUID;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -23,6 +24,7 @@ public class StaticAgent extends AgentBase {
 
     private int neededProductsCount;
     private int currentMoney;
+    private String currentConversationId;
 
     @Override
     protected void setup() {
@@ -46,7 +48,9 @@ public class StaticAgent extends AgentBase {
     private void startAskingForDelivery() {
         var sequentialBehaviour = new SequentialBehaviour();
 
-        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
+        currentConversationId = UUID.randomUUID().toString();
+        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
+                currentConversationId);
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
         var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
@@ -59,18 +63,19 @@ public class StaticAgent extends AgentBase {
                         10000,
                         mt,
                         aclMessages -> {
-                            var bestDeal = aclMessages.stream()
+                            var bestDeals = aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .limit((long) Math.ceil(aclMessages.size() * 0.1));
-                            var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                            message.setContent(Consts.IChooseYou);
-                            bestDeal.forEach(x ->
+                            bestDeals.forEach(x ->
                             {
+                                var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                                message.setContent(Consts.IChooseYou);
+                                message.setConversationId(x.getConversationId());
                                 Log.fromAgent(self,"choosed best deal: " + x.getContent() +
                                         " from " + x.getSender().getName());
                                 message.addReceiver(x.getSender());
+                                self.send(message);
                             });
-                            self.send(message);
                         }));
             }
         });

@@ -17,6 +17,7 @@ import models.AgentType;
 import models.Consts;
 
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +30,7 @@ public class DynamicAgent extends AgentBase {
     private int currentMoney;
     private boolean isGoingToStore = false;
     private int votesForMe = 0;
+    private String currentConversationId;
 
     @Override
     protected void setup() {
@@ -37,8 +39,7 @@ public class DynamicAgent extends AgentBase {
         init();
         registerOnYellowPages(type, district);
         startAskingForDelivery();
-        startListenHowMuchCostDeliveryToRegion();
-        startCountVotes();
+        startListenHowMuchCostDeliveryToDistrict();
     }
 
     private void init() {
@@ -50,7 +51,7 @@ public class DynamicAgent extends AgentBase {
         district = settings.District;
     }
 
-    private void startListenHowMuchCostDeliveryToRegion() {
+    private void startListenHowMuchCostDeliveryToDistrict() {
         var mt = new MessageTemplate(msg ->
             msg.getPerformative() == ACLMessage.CFP
             && msg.getContent().equals(Consts.HowMuchCostDeliveryToDistrict)
@@ -74,7 +75,9 @@ public class DynamicAgent extends AgentBase {
     private void startAskingForDelivery() {
         var sequentialBehaviour = new SequentialBehaviour(this);
 
-        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
+        currentConversationId = UUID.randomUUID().toString();
+        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
+                currentConversationId);
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
         var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
@@ -95,15 +98,16 @@ public class DynamicAgent extends AgentBase {
                                     .collect(Collectors.toList());
                             if (bestDeals.size() > 0)
                             {
-                                var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                                message.setContent(Consts.IChooseYou);
                                 bestDeals.forEach(x ->
                                 {
+                                    var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                                    message.setContent(Consts.IChooseYou);
+                                    message.setConversationId(x.getConversationId());
                                     Log.fromAgent(self,"choosed best deal: " + x.getContent() +
-                                            " from " + x.getSender().getName());
+                                                " from " + x.getSender().getName());
                                     message.addReceiver(x.getSender());
+                                    self.send(message);
                                 });
-                                self.send(message);
                             }
                             else
                             {
@@ -111,6 +115,12 @@ public class DynamicAgent extends AgentBase {
                             }
                         }
                 ));
+            }
+        });
+        sequentialBehaviour.addSubBehaviour(new OneShotBehaviour() {
+            @Override
+            public void action() {
+                startCountVotes();
             }
         });
 
@@ -143,7 +153,8 @@ public class DynamicAgent extends AgentBase {
 
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL
-                && msg.getContent().equals(Consts.IChooseYou));
+                && msg.getContent().equals(Consts.IChooseYou)
+                && currentConversationId.equals(msg.getConversationId()));
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             votesForMe++;
