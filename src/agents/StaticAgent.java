@@ -5,6 +5,7 @@ import behaviours.BatchReceiverWithHandlerBehaviour;
 import environment.CityMap;
 import helpers.Log;
 import helpers.MessageHelper;
+import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
@@ -42,14 +43,16 @@ public class StaticAgent extends AgentBase {
     }
 
     private void startAskingForDelivery() {
+        var sequentialBehaviour = new SequentialBehaviour();
+
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
-        addBehaviour(askForDeliveryInDistrictBehaviour);
+        sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.PROPOSE
                         && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
         );
-        addBehaviour(new BatchReceiverWithHandlerBehaviour(this,
+        sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this,
                 askForDeliveryInDistrictBehaviour.getReceiversCount(),
                 10000,
                 mt,
@@ -58,7 +61,7 @@ public class StaticAgent extends AgentBase {
                             .sorted(Comparator.comparingDouble(this::getProposeDeliveryCost))
                             .limit((long) Math.ceil(aclMessages.size() * 0.1));
                     var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                    message.setContent("I_CHOOSE_YOU");
+                    message.setContent(Consts.IChooseYou);
                     bestDeal.forEach(x ->
                     {
                         Log.fromAgent(this,"choosed best deal: " + x.getContent() +
@@ -67,6 +70,8 @@ public class StaticAgent extends AgentBase {
                     });
                     this.send(message);
                 }));
+
+        addBehaviour(sequentialBehaviour);
     }
 
     private double getProposeDeliveryCost(ACLMessage x) {

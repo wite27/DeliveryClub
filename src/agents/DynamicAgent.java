@@ -8,6 +8,7 @@ import environment.Store;
 import helpers.AgentHelper;
 import helpers.Log;
 import helpers.MessageHelper;
+import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
@@ -69,14 +70,16 @@ public class DynamicAgent extends AgentBase {
     }
 
     private void startAskingForDelivery() {
+        var sequentialBehaviour = new SequentialBehaviour(this);
+
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this);
-        addBehaviour(askForDeliveryInDistrictBehaviour);
+        sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.PROPOSE
                         && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
         );
-        addBehaviour(new BatchReceiverWithHandlerBehaviour(this,
+        sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this,
                 askForDeliveryInDistrictBehaviour.getReceiversCount(),
                 10000,
                 mt,
@@ -105,6 +108,8 @@ public class DynamicAgent extends AgentBase {
                     }
                 }
         ));
+
+        addBehaviour(sequentialBehaviour);
     }
 
     private void goToStoreAndNotify() {
