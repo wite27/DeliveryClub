@@ -93,7 +93,7 @@ public class DynamicAgent extends AgentBase {
                             var myDeliveryCost = calculateDeliveryCost();
                             var bestDeals = aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .limit((long) Math.ceil(aclMessages.size()*0.1))
+                                    .limit(1)
                                     .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
                                     .collect(Collectors.toList());
                             if (bestDeals.size() > 0)
@@ -114,7 +114,7 @@ public class DynamicAgent extends AgentBase {
                                 goToStoreAndNotify();
                             }
 
-                            enoughForMeInThisDay();
+                            enoughForMeInThisDay(); // TODO wait for votes !!!
                         }
                 ));
             }
@@ -170,6 +170,14 @@ public class DynamicAgent extends AgentBase {
     }
 
     private double calculateDeliveryCost()
+    {
+        return calculateCostToStore() /
+                (previousDayVotesForMe == 0
+                ? 2 // you and me
+                : previousDayVotesForMe + 1);
+    }
+
+    private double calculateCostToStore()
     {
         var store = Store.getInstance().getName();
         return calculateCostToPoint(store);

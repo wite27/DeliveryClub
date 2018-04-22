@@ -58,7 +58,7 @@ public class StaticAgent extends AgentBase {
                         aclMessages -> {
                             var bestDeals = aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .limit((long) Math.ceil(aclMessages.size() * 0.1));
+                                    .limit(1);
                             bestDeals.forEach(x ->
                             {
                                 var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
