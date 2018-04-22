@@ -93,7 +93,7 @@ public class DynamicAgent extends AgentBase {
                         mt,
                         aclMessages -> {
                             var myDeliveryCost = calculateDeliveryCost();
-                            var bestDeals = aclMessages.stream()
+                            aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
                                     .findFirst()
@@ -115,6 +115,7 @@ public class DynamicAgent extends AgentBase {
         sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 1000) {
             @Override
             protected void onTick() {
+                Log.fromAgent(myAgent,"PreviousVotes:" + votesForMe + ", CurrentVotes:" + previousDayVotesForMe);
                 enoughForMeInThisDay(votesForMe != previousDayVotesForMe); // TODO wait for votes !!!
                 stop();
             }

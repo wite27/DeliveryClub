@@ -27,3 +27,6 @@ out/
 # JADE generated files
 APDescription.txt
 MTPs-Main-Container.txt
+
+# Logs
+log-*.txt

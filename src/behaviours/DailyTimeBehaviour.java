@@ -14,6 +14,8 @@ import models.Consts;
 
 import java.util.ArrayList;
 
+import static environment.GlobalParams.MaxDistrictCourierSelectionDays;
+
 public class DailyTimeBehaviour extends SequentialBehaviour {
     private ArrayList<DFAgentDescription> allAgents;
     private String dayId;
@@ -43,7 +45,7 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
         });
 
         self.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(
-                a, allAgents.size(), 5000,
+                a, allAgents.size(), 2000,
                 new MessageTemplate(x -> x.getContent().startsWith(Consts.IGoToTheBedPrefix)
                         && dayId.equals(x.getConversationId())),
                 aclMessages -> {
@@ -55,7 +57,7 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
                     myAgent.send(MessageHelper.addReceivers(dayEndedMessage, allAgents));
                 }));
 
-        self.addSubBehaviour(new TickerBehaviour(myAgent, 1000) {
+        self.addSubBehaviour(new TickerBehaviour(myAgent, 100) {
             @Override
             protected void onTick() {
                 stop();
@@ -67,7 +69,7 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
     public int onEnd() {
         reset();
 
-        if (isNextDayNeeded)
+        if (isNextDayNeeded && dayNumber <= MaxDistrictCourierSelectionDays)
             myAgent.addBehaviour(this); // cyclic repeat sequential behaviour
 
         return super.onEnd();
