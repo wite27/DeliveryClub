@@ -11,6 +11,7 @@ import helpers.Log;
 import helpers.MessageHelper;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import models.AgentSettings;
@@ -64,7 +65,8 @@ public class DynamicAgent extends AgentBase {
                     Consts.IWillDeliverToDistrictPrefix,
                     String.valueOf(calculateDeliveryCost()),
                     getHome(),
-                    getWork()
+                    getWork(),
+                    currentConversationId // to get votes for this propose
             );
             answer.setConversationId(aclMessage.getConversationId());
             answer.addReceiver(answerTo);
@@ -93,30 +95,28 @@ public class DynamicAgent extends AgentBase {
                             var myDeliveryCost = calculateDeliveryCost();
                             var bestDeals = aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .limit(1)
                                     .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
-                                    .collect(Collectors.toList());
-                            if (bestDeals.size() > 0)
-                            {
-                                bestDeals.forEach(x ->
-                                {
-                                    var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                                    message.setContent(Consts.IChooseYou);
-                                    message.setConversationId(x.getConversationId());
-                                    Log.fromAgent(self,"choosed best deal: " + x.getContent() +
-                                                " from " + x.getSender().getName());
-                                    message.addReceiver(x.getSender());
-                                    self.send(message);
-                                });
-                            }
-                            else
-                            {
-                                goToStoreAndNotify();
-                            }
-
-                            enoughForMeInThisDay(); // TODO wait for votes !!!
+                                    .findFirst()
+                                    .ifPresentOrElse(bestDeal -> {
+                                        isGoingToStore = false;
+                                        var proposeId = MessageHelper.getParams(bestDeal)[4];
+                                        var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                                        message.setContent(Consts.IChooseYou);
+                                        message.setConversationId(proposeId);
+                                        Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
+                                                " from " + bestDeal.getSender().getName());
+                                        message.addReceiver(bestDeal.getSender());
+                                        self.send(message);
+                                    }, () -> goToStoreAndNotify());
                         }
                 ));
+            }
+        });
+        sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 1000) {
+            @Override
+            protected void onTick() {
+                enoughForMeInThisDay(votesForMe != previousDayVotesForMe); // TODO wait for votes !!!
+                stop();
             }
         });
 
@@ -162,7 +162,7 @@ public class DynamicAgent extends AgentBase {
     }
 
     private double getProposeDeliveryCost(ACLMessage x) {
-        var messageParams = MessageHelper.getParams(x.getContent());
+        var messageParams = MessageHelper.getParams(x);
         var cost = messageParams[1];
         var pointA = messageParams[2];
         var pointB = messageParams[3];

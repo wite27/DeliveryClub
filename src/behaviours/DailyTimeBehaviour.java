@@ -6,6 +6,7 @@ import helpers.MessageHelper;
 import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -47,12 +48,19 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
                         && dayId.equals(x.getConversationId())),
                 aclMessages -> {
                     isNextDayNeeded = aclMessages.stream()
-                            .anyMatch(x -> MessageHelper.getParams(x.getContent())[1].equals("TRUE"));
+                            .anyMatch(x -> MessageHelper.getParams(x)[1].equals("TRUE"));
 
                     var dayEndedMessage = MessageHelper.buildMessage(
                             ACLMessage.INFORM, Consts.GoodNight);
                     myAgent.send(MessageHelper.addReceivers(dayEndedMessage, allAgents));
                 }));
+
+        self.addSubBehaviour(new TickerBehaviour(myAgent, 1000) {
+            @Override
+            protected void onTick() {
+                stop();
+            }
+        });
     }
 
     @Override

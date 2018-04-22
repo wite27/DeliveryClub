@@ -20,9 +20,9 @@ public class MessageHelper {
         return message;
     }
 
-    public static String[] getParams(String message)
+    public static String[] getParams(ACLMessage message)
     {
-        return message.split(delimiter);
+        return message.getContent().split(delimiter);
     }
 
     public static ACLMessage addReceivers(ACLMessage message, ArrayList<DFAgentDescription> receivers)

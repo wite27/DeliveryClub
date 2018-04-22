@@ -114,8 +114,9 @@ public abstract class AgentBase extends Agent {
                 calculateCostToPoint(pointB));
     }
 
-    protected void enoughForMeInThisDay(){
-        var message = MessageHelper.buildMessage(ACLMessage.INFORM, Consts.IGoToTheBedPrefix, "TRUE");
+    protected void enoughForMeInThisDay(boolean needNextDay){
+        var message = MessageHelper.buildMessage(ACLMessage.INFORM, Consts.IGoToTheBedPrefix,
+                needNextDay ? "TRUE" : "FALSE");
         message.addReceiver(coordinatorAid);
         message.setConversationId(dayId);
         send(message);

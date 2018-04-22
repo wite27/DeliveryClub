@@ -20,9 +20,11 @@ import java.util.UUID;
  * Created by K750JB on 24.03.2018.
  */
 public class StaticAgent extends AgentBase {
-    public StaticAgent(){
+    public StaticAgent() {
         type = AgentType.Static;
     }
+
+    private double bestDeliveryToDistrictDeal = Double.MAX_VALUE;
 
     @Override
     protected void setup() {
@@ -56,21 +58,23 @@ public class StaticAgent extends AgentBase {
                         1000,
                         mt,
                         aclMessages -> {
-                            var bestDeals = aclMessages.stream()
-                                    .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .limit(1);
-                            bestDeals.forEach(x ->
-                            {
-                                var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                                message.setContent(Consts.IChooseYou);
-                                message.setConversationId(x.getConversationId());
-                                Log.fromAgent(self,"choosed best deal: " + x.getContent() +
-                                        " from " + x.getSender().getName());
-                                message.addReceiver(x.getSender());
-                                self.send(message);
-                            });
+                            var bestDeal = aclMessages.stream()
+                                    .min(Comparator.comparingDouble(self::getProposeDeliveryCost))
+                                    .get(); // TODO isPresent
+                            var proposeId = MessageHelper.getParams(bestDeal)[4];
 
-                            enoughForMeInThisDay();
+                            var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                            message.setContent(Consts.IChooseYou);
+                            message.setConversationId(proposeId);
+                            Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
+                                    " from " + bestDeal.getSender().getName());
+                            message.addReceiver(bestDeal.getSender());
+                            self.send(message);
+
+                            var dealCost = getProposeDeliveryCost(bestDeal);
+                            var needNextDay = Math.abs(dealCost - bestDeliveryToDistrictDeal) > 0.001;
+                            bestDeliveryToDistrictDeal = dealCost;
+                            enoughForMeInThisDay(needNextDay);
                         }));
             }
         });
@@ -79,7 +83,7 @@ public class StaticAgent extends AgentBase {
     }
 
     private double getProposeDeliveryCost(ACLMessage x) {
-        var messageParams = MessageHelper.getParams(x.getContent());
+        var messageParams = MessageHelper.getParams(x);
         var cost = messageParams[1];
         var pointA = messageParams[2];
         var pointB = messageParams[3];
