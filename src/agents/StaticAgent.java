@@ -27,8 +27,16 @@ public class StaticAgent extends AgentBase {
     @Override
     protected void setup() {
         super.setup();
+    }
 
+    @Override
+    protected void onDayStart() {
         startAskingForDelivery();
+    }
+
+    @Override
+    protected void onDayEnd() {
+
     }
 
     private void startAskingForDelivery() {
@@ -45,7 +53,7 @@ public class StaticAgent extends AgentBase {
             public void action() {
                 sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(self,
                         askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                        10000,
+                        1000,
                         mt,
                         aclMessages -> {
                             var bestDeals = aclMessages.stream()
@@ -61,6 +69,8 @@ public class StaticAgent extends AgentBase {
                                 message.addReceiver(x.getSender());
                                 self.send(message);
                             });
+
+                            enoughForMeInThisDay();
                         }));
             }
         });
@@ -75,6 +85,7 @@ public class StaticAgent extends AgentBase {
         var pointB = messageParams[3];
         return Double.parseDouble(cost) + calculateBestDeliveryPoint(pointA, pointB);
     }
+
     @Override
     protected double calculateCostToPoint(String point) {
         return CityMap.getInstance().getPathWeight(getHome(), point);

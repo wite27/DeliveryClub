@@ -7,6 +7,7 @@ import environment.CityMap;
 import environment.Store;
 import helpers.Log;
 import helpers.MessageHelper;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -19,10 +20,9 @@ import messages.YouAreDistrictLeaderMessage;
 import models.AgentSettings;
 import models.AgentType;
 import models.Consts;
+import models.DeliveryContract;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -37,6 +37,13 @@ public abstract class AgentBase extends Agent {
 
     protected String currentConversationId;
 
+    protected HashSet<DeliveryContract> contracts = new HashSet<DeliveryContract>();
+
+    protected AID coordinatorAid;
+    protected String dayId;
+
+    protected abstract void onDayStart();
+    protected abstract void onDayEnd();
     protected abstract double calculateCostToPoint(String point);
 
     @Override
@@ -44,11 +51,26 @@ public abstract class AgentBase extends Agent {
         super.setup();
 
         init();
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this,
+            new MessageTemplate(x -> Consts.GoodMorning.equals(x.getContent())),
+            x -> {
+                coordinatorAid = x.getSender();
+                dayId = x.getConversationId();
+                currentConversationId = UUID.randomUUID().toString();
+                onDayStart();
+            }));
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this,
+            new MessageTemplate(x -> Consts.GoodNight.equals(x.getContent())
+                                     && dayId.equals(x.getConversationId())),
+            x -> {
+                onDayEnd();
+            }));
     }
 
     private void init() {
         var args = getArguments();
-        var settings = (AgentSettings)args[0];
+        var settings = (AgentSettings) args[0];
         neededProductsCount = settings.NeededProductsCount;
         route = settings.Route;
         currentMoney = settings.StartMoney;
@@ -60,15 +82,14 @@ public abstract class AgentBase extends Agent {
     }
 
     protected void registerOnYellowPages() {
-        var sd  = new ServiceDescription();
+        var sd = new ServiceDescription();
         sd.setType(type.name());
         sd.setName(getLocalName());
         sd.addProperties(new Property(Consts.District, district));
         register(sd);
     }
 
-    protected String getHome()
-    {
+    protected String getHome() {
         return route.get(0);
     }
 
@@ -76,21 +97,27 @@ public abstract class AgentBase extends Agent {
         return district;
     }
 
-    private void register( ServiceDescription sd)
-    {
+    private void register(ServiceDescription sd) {
         var dfd = new DFAgentDescription();
         dfd.setName(getAID());
 
         dfd.addServices(sd);
         try {
             DFService.register(this, dfd);
+        } catch (FIPAException fe) {
+            fe.printStackTrace();
         }
-        catch (FIPAException fe) { fe.printStackTrace(); }
     }
 
-    protected double calculateBestDeliveryPoint(String pointA, String pointB)
-    {
+    protected double calculateBestDeliveryPoint(String pointA, String pointB) {
         return Math.min(calculateCostToPoint(pointA),
-                        calculateCostToPoint(pointB));
+                calculateCostToPoint(pointB));
+    }
+
+    protected void enoughForMeInThisDay(){
+        var message = MessageHelper.buildMessage(ACLMessage.INFORM, Consts.IGoToTheBedPrefix, "TRUE");
+        message.addReceiver(coordinatorAid);
+        message.setConversationId(dayId);
+        send(message);
     }
 }

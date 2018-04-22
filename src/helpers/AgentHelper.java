@@ -15,19 +15,28 @@ import java.util.stream.Collectors;
 
 public class AgentHelper {
 
-    public static DFAgentDescription[] findAgents(Agent self, AgentType type)
+    public static ArrayList<DFAgentDescription> findAllAgents(Agent self)
+    {
+        var statics = findAgents(self, AgentType.Static);
+        var dynamics = findAgents(self, AgentType.Dynamic);
+
+        statics.addAll(dynamics);
+
+        return statics;
+    }
+
+    public static ArrayList<DFAgentDescription> findAgents(Agent self, AgentType type)
     {
         try {
             DFAgentDescription dfd = new DFAgentDescription();
             ServiceDescription sd = new ServiceDescription();
             sd.setType(type.name());
             dfd.addServices(sd);
-            DFAgentDescription[] result = DFService.search(self, dfd);
-            return result;
+            return new ArrayList<>(Arrays.asList(DFService.search(self, dfd)));
         }
         catch (FIPAException fe) {
             fe.printStackTrace();
-            return new DFAgentDescription[0];
+            return new ArrayList<>();
         }
     }
 

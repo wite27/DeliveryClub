@@ -1,5 +1,6 @@
 package agents;
 
+import behaviours.DailyTimeBehaviour;
 import com.alibaba.fastjson.JSON;
 import environment.CityMap;
 import environment.Store;
@@ -36,6 +37,7 @@ public class CoordinatorAgent2 extends Agent {
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
+        addBehaviour(new DailyTimeBehaviour(this));
     }
 
     public int[] getAllDistricts() {

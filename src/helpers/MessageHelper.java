@@ -1,8 +1,9 @@
 package helpers;
 
-import jade.core.AID;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
-import models.Consts;
+
+import java.util.ArrayList;
 
 public class MessageHelper {
     private final static String delimiter = "/";
@@ -11,13 +12,23 @@ public class MessageHelper {
     {
         var message = new ACLMessage(performative);
 
-        message.setContent(prefix + delimiter + String.join(delimiter, params));
+        var content = prefix;
+        if (params != null && params.length > 0)
+            content += delimiter + String.join(delimiter, params);
+
+        message.setContent(content);
         return message;
     }
 
     public static String[] getParams(String message)
     {
         return message.split(delimiter);
+    }
+
+    public static ACLMessage addReceivers(ACLMessage message, ArrayList<DFAgentDescription> receivers)
+    {
+        receivers.forEach(x -> message.addReceiver(x.getName()));
+        return message;
     }
 }
 

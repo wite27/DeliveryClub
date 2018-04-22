@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class DynamicAgent extends AgentBase {
     private boolean isGoingToStore = false;
     private int votesForMe = 0;
+    private int previousDayVotesForMe = 0;
 
     public DynamicAgent(){
         type = AgentType.Dynamic;
@@ -35,10 +36,20 @@ public class DynamicAgent extends AgentBase {
     @Override
     protected void setup() {
         super.setup();
-
-        startAskingForDelivery();
         startListenHowMuchCostDeliveryToDistrict();
         startCountVotes();
+    }
+
+    @Override
+    protected void onDayStart() {
+        previousDayVotesForMe = votesForMe;
+        votesForMe = 0;
+        startAskingForDelivery();
+    }
+
+    @Override
+    protected void onDayEnd() {
+
     }
 
     private void startListenHowMuchCostDeliveryToDistrict() {
@@ -76,7 +87,7 @@ public class DynamicAgent extends AgentBase {
             public void action() {
                 sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(self,
                         askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                        10000,
+                        1000,
                         mt,
                         aclMessages -> {
                             var myDeliveryCost = calculateDeliveryCost();
@@ -102,6 +113,8 @@ public class DynamicAgent extends AgentBase {
                             {
                                 goToStoreAndNotify();
                             }
+
+                            enoughForMeInThisDay();
                         }
                 ));
             }
