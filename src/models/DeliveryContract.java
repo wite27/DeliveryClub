@@ -1,28 +1,34 @@
 package models;
 
-import jade.core.AID;
-
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class DeliveryContract {
-    public DeliveryContract(AID deliveryman, AID receiver, double cost, String point) {
-        this.deliveryman = deliveryman;
-        this.receiver = receiver;
+    public DeliveryContract(
+            ContractParty producer,
+            ContractParty consumer,
+            double cost,
+            String point,
+            ArrayList<DeliveryContract> previousContracts) {
+        this.producer = producer;
+        this.consumer = consumer;
         this.cost = cost;
         this.point = point;
+        this.previousContracts = previousContracts;
     }
 
-    private AID deliveryman;
-    private AID receiver;
+    private ContractParty producer;
+    private ContractParty consumer;
     private double cost;
     private String point;
+    private ArrayList<DeliveryContract> previousContracts;
 
-    public AID getDeliveryman() {
-        return deliveryman;
+    public ContractParty getProducer() {
+        return producer;
     }
 
-    public AID getReceiver() {
-        return receiver;
+    public ContractParty getConsumer() {
+        return consumer;
     }
 
     public double getCost() {
@@ -38,12 +44,14 @@ public class DeliveryContract {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DeliveryContract that = (DeliveryContract) o;
-        return  Objects.equals(deliveryman, that.deliveryman) &&
-                Objects.equals(receiver, that.receiver);
+        if (previousContracts.size() != that.previousContracts.size())
+            return false; //TODO compare each contract
+        return  Objects.equals(producer, that.producer) &&
+                Objects.equals(consumer, that.consumer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(deliveryman, receiver);
+        return Objects.hash(producer, consumer);
     }
 }
