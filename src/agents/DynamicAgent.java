@@ -14,10 +14,9 @@ import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import models.AgentSettings;
-import models.AgentType;
-import models.Consts;
+import models.*;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +36,13 @@ public class DynamicAgent extends AgentBase {
     @Override
     protected void setup() {
         super.setup();
+        CalculateCostResult costToPoint = getCostToPoint(Store.getInstance().getName());
+        receiveContract = new DeliveryContract(
+                new StoreContractParty(),
+                this.toContractParty(),
+                costToPoint.cost,
+                costToPoint.point,
+                new ArrayList<>());
         startListenHowMuchCostDeliveryToDistrict();
         startCountVotes();
     }
@@ -188,6 +194,25 @@ public class DynamicAgent extends AgentBase {
         return this.route.get(route.size() - 1);
     }
 
+    private CalculateCostResult getCostToPoint(String point) {
+        var map = CityMap.getInstance();
+        var best = new CalculateCostResult(Double.MAX_VALUE);
+        best.point = point;
+
+        for (int i = 0; i < route.size() - 1; i++)
+        {
+            var oldCost = map.getPathWeight(route.get(i), route.get(i+1));
+            var cost = map.getPathWeight(route.get(i), point) + map.getPathWeight(point, route.get(i+1));
+            var delta = cost - oldCost;
+            if (delta < best.cost)
+            {
+                best.cost = delta;
+                best.previousPoint = route.get(i);
+                best.nextPoint = route.get(i+1);
+            }
+        }
+        return best;
+    }
     @Override
     protected double calculateCostToPoint(String point) {
         var home = getHome();

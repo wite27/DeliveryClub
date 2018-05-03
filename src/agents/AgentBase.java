@@ -17,10 +17,7 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.YouAreDistrictLeaderMessage;
-import models.AgentSettings;
-import models.AgentType;
-import models.Consts;
-import models.DeliveryContract;
+import models.*;
 
 import java.util.*;
 
@@ -37,7 +34,8 @@ public abstract class AgentBase extends Agent {
 
     protected String currentConversationId;
 
-    protected HashSet<DeliveryContract> contracts = new HashSet<DeliveryContract>();
+    protected HashSet<DeliveryContract> produceContracts = new HashSet<DeliveryContract>();
+    protected DeliveryContract receiveContract;
 
     protected AID coordinatorAid;
     protected String dayId;
@@ -120,5 +118,9 @@ public abstract class AgentBase extends Agent {
         message.addReceiver(coordinatorAid);
         message.setConversationId(dayId);
         send(message);
+    }
+
+    protected ContractParty toContractParty(){
+        return new AgentContractParty(this.getAID());
     }
 }
