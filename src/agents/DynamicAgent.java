@@ -9,17 +9,18 @@ import environment.Store;
 import helpers.AgentHelper;
 import helpers.Log;
 import helpers.MessageHelper;
+import jade.core.AID;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.DeliveryProposeMessageContent;
+import messages.PotentialContractMessageContent;
 import models.*;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -36,7 +37,8 @@ public class DynamicAgent extends AgentBase {
     @Override
     protected void setup() {
         super.setup();
-        CalculateCostResult costToPoint = getCostToPoint(Store.getInstance().getName());
+        // firstly, make contract with store
+        var costToPoint = getCostToPoint(Store.getInstance().getName());
         receiveContract = new DeliveryContract(
                 new StoreContractParty(),
                 this.toContractParty(),
@@ -44,7 +46,7 @@ public class DynamicAgent extends AgentBase {
                 costToPoint.point,
                 new ArrayList<>());
         startListenHowMuchCostDeliveryToDistrict();
-        startCountVotes();
+        startAnswerOnPotentialContracts();
     }
 
     @Override
@@ -66,13 +68,12 @@ public class DynamicAgent extends AgentBase {
         );
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
-            var answer = MessageHelper.buildMessage(
+            var content = new DeliveryProposeMessageContent(route, calculateProposeDeliveryCost());
+
+            var answer = MessageHelper.buildMessage2(
                     ACLMessage.PROPOSE,
-                    Consts.IWillDeliverToDistrictPrefix,
-                    String.valueOf(calculateDeliveryCost()),
-                    getHome(),
-                    getWork(),
-                    currentConversationId // to get votes for this propose
+                    DeliveryProposeMessageContent.class.getName(),
+                    content
             );
             answer.setConversationId(aclMessage.getConversationId());
             answer.addReceiver(answerTo);
@@ -98,22 +99,27 @@ public class DynamicAgent extends AgentBase {
                         1000,
                         mt,
                         aclMessages -> {
-                            var myDeliveryCost = calculateDeliveryCost();
+                            var currentCost = calculateCurrentDeliveryCost();
                             aclMessages.stream()
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .filter(x -> getProposeDeliveryCost(x) < myDeliveryCost)
+                                    .filter(x -> getProposeDeliveryCost(x) < currentCost)
                                     .findFirst()
-                                    .ifPresentOrElse(bestDeal -> {
+                                    .ifPresent(bestDeal -> {
                                         isGoingToStore = false;
-                                        var proposeId = MessageHelper.getParams(bestDeal)[4];
-                                        var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                                        message.setContent(Consts.IChooseYou);
-                                        message.setConversationId(proposeId);
+                                        var content = MessageHelper.getDeliveryProposeMessageContent(bestDeal.getContent());
+                                        var calc = getProposeDeliveryCalcResult(bestDeal); // get best point from propose
+                                        var potentialContract = new PotentialContractMessageContent(
+                                                content.proposeId, calc.point, content.cost);
+                                        var message = MessageHelper.buildMessage2(
+                                                ACLMessage.ACCEPT_PROPOSAL,
+                                                PotentialContractMessageContent.class.getName(),
+                                                potentialContract);
+                                        message.setConversationId(content.proposeId);
                                         Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
                                                 " from " + bestDeal.getSender().getName());
                                         message.addReceiver(bestDeal.getSender());
                                         self.send(message);
-                                    }, () -> goToStoreAndNotify());
+                                    });
                         }
                 ));
             }
@@ -121,8 +127,7 @@ public class DynamicAgent extends AgentBase {
         sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 1000) {
             @Override
             protected void onTick() {
-                Log.fromAgent(myAgent,"PreviousVotes:" + votesForMe + ", CurrentVotes:" + previousDayVotesForMe);
-                enoughForMeInThisDay(votesForMe != previousDayVotesForMe); // TODO wait for votes !!!
+                enoughForMeInThisDay(true); // TODO wait for votes !!!
                 stop();
             }
         });
@@ -130,64 +135,62 @@ public class DynamicAgent extends AgentBase {
         addBehaviour(sequentialBehaviour);
     }
 
-    private void goToStoreAndNotify() {
-        if (this.isGoingToStore) // we are going to store already
-            return;
-
-        this.isGoingToStore = true;
-        Log.fromAgent(this," will go to store");
-
-        var agentsInThisDistrict = AgentHelper
-                .findAgents(this, this.getDistrict(), false);
-        var msg = new ACLMessage(ACLMessage.INFORM);
-        msg.setContent(Consts.IWillGoToStore);
-        for (var agent: agentsInThisDistrict) {
-            msg.addReceiver(agent.getName());
-        }
-        this.send(msg);
-    }
-
-    private void startCountVotes(){
-        var maxVotesCount = AgentHelper
-                .findAgents(this, getDistrict(), false)
-                .size();
-        var neededVotesCount = (int) (maxVotesCount * GlobalParams.VotesThreshold);
-
+    private void startAnswerOnPotentialContracts(){
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL
-                && msg.getContent().equals(Consts.IChooseYou)
-                && currentConversationId.equals(msg.getConversationId()));
+                && msg.getOntology().equals(PotentialContractMessageContent.class.getName()));
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
-            votesForMe++;
-
-            if (votesForMe >= neededVotesCount)
+            var content = PotentialContractMessageContent.fromMessage(aclMessage);
+            var isConditionsInForce = calculateProposeDeliveryCost() <= content.cost;
+            if (!isConditionsInForce)
             {
-                goToStoreAndNotify();
+                var answer = new ACLMessage(ACLMessage.CANCEL);
+                answer.setConversationId(content.getProposeId());
+                answer.addReceiver(aclMessage.getSender());
+                send(answer);
+
+                return;
             }
+
+            var contract = new DeliveryContract(
+                    this.toContractParty(), new AgentContractParty(aclMessage.getSender()),
+                    content.cost, content.point, this.receiveContract.makeChain());
+            var answer = MessageHelper.buildMessage2(
+                    ACLMessage.AGREE,
+                    DeliveryContract.class.getName(),
+                    contract);
+            answer.addReceiver(aclMessage.getSender());
+
+            send(answer);
         }));
     }
 
-    private double getProposeDeliveryCost(ACLMessage x) {
-        var messageParams = MessageHelper.getParams(x);
-        var cost = messageParams[1];
-        var pointA = messageParams[2];
-        var pointB = messageParams[3];
-        return Double.parseDouble(cost) + calculateBestDeliveryPoint(pointA, pointB);
+    private double getProposeDeliveryCost(ACLMessage message) {
+        var propose = MessageHelper.getDeliveryProposeMessageContent(message.getContent());
+        return propose.cost +
+               propose.points.stream()
+                       .map(x -> getCostToPoint(x).cost)
+                       .min(Double::compareTo)
+                       .get();
     }
 
-    private double calculateDeliveryCost()
-    {
-        return calculateCostToStore() /
-                (previousDayVotesForMe == 0
-                ? 2 // you and me
-                : previousDayVotesForMe + 1);
+    private CalculateCostResult getProposeDeliveryCalcResult(ACLMessage message) {
+        var propose = MessageHelper.getDeliveryProposeMessageContent(message.getContent());
+        return propose.points.stream()
+                        .map(this::getCostToPoint)
+                        .min(Comparator.comparingDouble(x -> x.cost))
+                        .get();
     }
 
-    private double calculateCostToStore()
+    private double calculateProposeDeliveryCost()
     {
-        var store = Store.getInstance().getName();
-        return calculateCostToPoint(store);
+        return receiveContract.getCost() / (produceContracts.size() + 2); // my receivers, me and you
+    }
+
+    private double calculateCurrentDeliveryCost()
+    {
+        return receiveContract.getCost() / (produceContracts.size() + 1); // my receivers and me
     }
 
     private String getWork() {
@@ -212,20 +215,5 @@ public class DynamicAgent extends AgentBase {
             }
         }
         return best;
-    }
-    @Override
-    protected double calculateCostToPoint(String point) {
-        var home = getHome();
-        var work = getWork();
-        var map = CityMap.getInstance();
-
-        var costWithoutPoint = map.getPathWeight(home, work);
-        var costWithPoint = map.getPathWeight(home, point) + map.getPathWeight(point, work);
-
-        var delta = (costWithPoint - costWithoutPoint);
-
-        return delta > 0
-                ? delta
-                : 0;
     }
 }

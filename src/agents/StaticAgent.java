@@ -9,6 +9,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.PotentialContractMessageContent;
 import models.AgentSettings;
 import models.AgentType;
 import models.Consts;
@@ -61,11 +62,15 @@ public class StaticAgent extends AgentBase {
                             var bestDeal = aclMessages.stream()
                                     .min(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .get(); // TODO isPresent
-                            var proposeId = MessageHelper.getParams(bestDeal)[4];
+                            var content = MessageHelper.getDeliveryProposeMessageContent(bestDeal.getContent());
 
-                            var message = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                            message.setContent(Consts.IChooseYou);
-                            message.setConversationId(proposeId);
+                            var potentialContract = new PotentialContractMessageContent(
+                                    content.proposeId, getHome(), content.cost);
+                            var message = MessageHelper.buildMessage2(
+                                    ACLMessage.ACCEPT_PROPOSAL,
+                                    PotentialContractMessageContent.class.getName(),
+                                    potentialContract);
+                            message.setConversationId(content.proposeId);
                             Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
                                     " from " + bestDeal.getSender().getName());
                             message.addReceiver(bestDeal.getSender());
@@ -82,15 +87,15 @@ public class StaticAgent extends AgentBase {
         addBehaviour(sequentialBehaviour);
     }
 
-    private double getProposeDeliveryCost(ACLMessage x) {
-        var messageParams = MessageHelper.getParams(x);
-        var cost = messageParams[1];
-        var pointA = messageParams[2];
-        var pointB = messageParams[3];
-        return Double.parseDouble(cost) + calculateBestDeliveryPoint(pointA, pointB);
+    private double getProposeDeliveryCost(ACLMessage message) {
+        var propose = MessageHelper.getDeliveryProposeMessageContent(message.getContent());
+        return propose.cost +
+                propose.points.stream()
+                        .map(x -> calculateCostToPoint(x))
+                        .min(Double::compareTo)
+                        .get();
     }
 
-    @Override
     protected double calculateCostToPoint(String point) {
         return CityMap.getInstance().getPathWeight(getHome(), point);
     }

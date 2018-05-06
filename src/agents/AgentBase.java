@@ -42,7 +42,6 @@ public abstract class AgentBase extends Agent {
 
     protected abstract void onDayStart();
     protected abstract void onDayEnd();
-    protected abstract double calculateCostToPoint(String point);
 
     @Override
     protected void setup() {
@@ -105,11 +104,6 @@ public abstract class AgentBase extends Agent {
         } catch (FIPAException fe) {
             fe.printStackTrace();
         }
-    }
-
-    protected double calculateBestDeliveryPoint(String pointA, String pointB) {
-        return Math.min(calculateCostToPoint(pointA),
-                calculateCostToPoint(pointB));
     }
 
     protected void enoughForMeInThisDay(boolean needNextDay){

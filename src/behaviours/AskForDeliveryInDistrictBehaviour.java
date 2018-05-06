@@ -6,6 +6,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.DeliveryProposeMessageContent;
 import models.AgentType;
 import models.Consts;
 
@@ -53,7 +54,7 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     {
         return new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.PROPOSE
-                        && msg.getContent().startsWith(Consts.IWillDeliverToDistrictPrefix)
+                        && DeliveryProposeMessageContent.class.getName().equals(msg.getOntology())
                         && conversationId.equals(msg.getConversationId())
         );
     }
