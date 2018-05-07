@@ -127,7 +127,7 @@ public class StaticAgent extends AgentBase {
 
         var whoDeliversToMe = receiveContract.getProducer();
 
-        if (whoDeliversToMe.isBuzulka())
+        if (whoDeliversToMe.isStore())
         {
             receiveContract = null;
             return;

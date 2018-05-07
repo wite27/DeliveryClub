@@ -13,7 +13,7 @@ public class DeliveryContract {
             ContractParty consumer,
             double cost,
             String point,
-            ArrayList<DeliveryContract> previousContracts) {
+            ArrayList<DeliveryContractHistoryItem> previousContracts) {
         this.producer = producer;
         this.consumer = consumer;
         this.cost = cost;
@@ -30,7 +30,7 @@ public class DeliveryContract {
     private ContractParty consumer;
     private double cost;
     private String point;
-    private ArrayList<DeliveryContract> previousContracts;
+    private ArrayList<DeliveryContractHistoryItem> previousContracts;
 
     public String getId() {return id;}
 
@@ -50,18 +50,18 @@ public class DeliveryContract {
         return point;
     }
 
-    public ArrayList<DeliveryContract> getPreviousContracts() { return previousContracts; }
+    public ArrayList<DeliveryContractHistoryItem> getPreviousContracts() { return previousContracts; }
 
-    public ArrayList<DeliveryContract> makeChain() {
+    public ArrayList<DeliveryContractHistoryItem> makeChain() {
         var chain = new ArrayList<>(getPreviousContracts());
-        chain.add(0, this);
+        chain.add(0, DeliveryContractHistoryItem.fromContract(this));
 
         return chain;
     }
 
     public boolean isProducerInPreviousContracts(AID agent) {
         return previousContracts.stream()
-                .map(x -> x.producer)
+                .map(DeliveryContractHistoryItem::getProducer)
                 .anyMatch(x -> x.getId().equals(agent.getName()));
     }
 

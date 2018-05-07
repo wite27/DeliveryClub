@@ -17,6 +17,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.DayResultMessageContent;
 import messages.YouAreDistrictLeaderMessage;
 import models.*;
 
@@ -108,8 +109,10 @@ public abstract class AgentBase extends Agent {
     }
 
     protected void enoughForMeInThisDay(boolean needNextDay){
-        var message = MessageHelper.buildMessage(ACLMessage.INFORM, Consts.IGoToTheBedPrefix,
-                needNextDay ? "TRUE" : "FALSE");
+        var message = MessageHelper.buildMessage2(
+                ACLMessage.INFORM,
+                DayResultMessageContent.class.getName(),
+                new DayResultMessageContent(receiveContract, produceContracts, true));
         message.addReceiver(coordinatorAid);
         message.setConversationId(dayId);
         send(message);

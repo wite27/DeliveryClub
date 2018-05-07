@@ -40,12 +40,12 @@ public class DynamicAgent extends AgentBase {
         super.setup();
         // firstly, make contract with store
         var costToStore = getCostToPoint(Store.getInstance().getName());
-        receiveContract = new DeliveryContract(
+        addReceiveContract(new DeliveryContract(
                 ContractParty.store(),
                 this.toContractParty(),
                 costToStore.cost,
                 costToStore.point,
-                new ArrayList<>());
+                new ArrayList<>()));
         startListenHowMuchCostDeliveryToDistrict();
         startAnswerOnPotentialContracts();
         startAnswerOnMakeContract();
@@ -185,8 +185,26 @@ public class DynamicAgent extends AgentBase {
             if (receiveContract != null)
                 cancelCurrentReceiveContract();
 
-            receiveContract = content.contract;
+            addReceiveContract(content.contract);
         }));
+    }
+
+    private void addReceiveContract(DeliveryContract contract) {
+        if (receiveContract != null)
+        {
+            Log.warn("Agent " + this.getName() + " tried to add receive contract, but he already has one!");
+            return;
+        }
+
+        this.receiveContract = contract;
+
+        var calc = getCostToPoint(contract.getPoint());
+
+        if (!route.contains(calc.point))
+        {
+            // now we are going through new point
+            this.route.add(this.route.indexOf(calc.nextPoint), calc.point);
+        }
     }
 
     private void cancelCurrentReceiveContract() {
@@ -198,7 +216,7 @@ public class DynamicAgent extends AgentBase {
 
         var whoDeliversToMe = receiveContract.getProducer();
 
-        if (whoDeliversToMe.isBuzulka())
+        if (whoDeliversToMe.isStore())
         {
             receiveContract = null;
             return;
@@ -209,6 +227,8 @@ public class DynamicAgent extends AgentBase {
                 CancelContractMessageContent.class.getName(),
                 new CancelContractMessageContent(receiveContract));
         message.addReceiver(new AID(whoDeliversToMe.getId(), true));
+
+        receiveContract = null;
     }
 
     private void startListenCancelledContracts() {

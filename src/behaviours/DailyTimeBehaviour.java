@@ -3,6 +3,7 @@ package behaviours;
 import helpers.AgentHelper;
 import helpers.Log;
 import helpers.MessageHelper;
+import helpers.StringHelper;
 import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
@@ -10,9 +11,11 @@ import jade.core.behaviours.TickerBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.DayResultMessageContent;
 import models.Consts;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import static environment.GlobalParams.MaxDistrictCourierSelectionDays;
 
@@ -46,11 +49,15 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
 
         self.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(
                 a, allAgents.size(), 2000,
-                new MessageTemplate(x -> x.getContent().startsWith(Consts.IGoToTheBedPrefix)
+                new MessageTemplate(x -> StringHelper.safeEquals(x.getOntology(), DayResultMessageContent.class.getName())
                         && dayId.equals(x.getConversationId())),
                 aclMessages -> {
-                    isNextDayNeeded = aclMessages.stream()
-                            .anyMatch(x -> MessageHelper.getParams(x)[1].equals("TRUE"));
+                    var results = aclMessages.stream()
+                            .map(x -> MessageHelper.parse(x, DayResultMessageContent.class))
+                            .collect(Collectors.toList());
+
+                    isNextDayNeeded = results.stream().anyMatch(DayResultMessageContent::isNeedNextDay);
+
 
                     var dayEndedMessage = MessageHelper.buildMessage(
                             ACLMessage.INFORM, Consts.GoodNight);

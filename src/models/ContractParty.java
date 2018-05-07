@@ -6,19 +6,19 @@ import java.util.Objects;
 
 public class ContractParty {
     private String id;
-    private boolean buzulka;
+    private boolean isStore;
 
     public String getId() {
         return id;
     }
-    public boolean isBuzulka() {return buzulka;}
+    public boolean isStore() {return isStore;}
 
     private ContractParty() {}
 
-    public ContractParty(String id, boolean buzulka)
+    public ContractParty(String id, boolean isStore)
     {
         this.id = id;
-        this.buzulka = buzulka;
+        this.isStore = isStore;
     }
 
     public static ContractParty agent(AID aid)
