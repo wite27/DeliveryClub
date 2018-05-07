@@ -1,9 +1,6 @@
 package messages;
 
-import com.alibaba.fastjson.JSON;
-import jade.lang.acl.ACLMessage;
-
-public class PotentialContractMessageContent {
+public class PotentialContractMessageContent extends MessageContentBase {
     private String proposeId;
     public String point;
     public double cost;
@@ -14,11 +11,6 @@ public class PotentialContractMessageContent {
         this.proposeId = proposeId;
         this.point = point;
         this.cost = cost;
-    }
-
-    public static PotentialContractMessageContent fromMessage(ACLMessage message)
-    {
-        return JSON.parseObject(message.getContent(), PotentialContractMessageContent.class);
     }
 
     public String getProposeId() {

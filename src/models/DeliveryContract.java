@@ -1,5 +1,7 @@
 package models;
 
+import jade.core.AID;
+
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
@@ -17,11 +19,13 @@ public class DeliveryContract {
         this.cost = cost;
         this.point = point;
         this.previousContracts = previousContracts;
+
+        this.id = UUID.randomUUID().toString();
     }
 
     private DeliveryContract() {}
 
-    private String id = UUID.randomUUID().toString();
+    private String id;
     private ContractParty producer;
     private ContractParty consumer;
     private double cost;
@@ -53,6 +57,12 @@ public class DeliveryContract {
         chain.add(0, this);
 
         return chain;
+    }
+
+    public boolean isProducerInPreviousContracts(AID agent) {
+        return previousContracts.stream()
+                .map(x -> x.producer)
+                .anyMatch(x -> x.getId().equals(agent.getName()));
     }
 
     @Override

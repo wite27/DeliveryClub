@@ -2,20 +2,23 @@ package agents;
 
 import behaviours.AskForDeliveryInDistrictBehaviour;
 import behaviours.BatchReceiverWithHandlerBehaviour;
+import behaviours.CyclicReceiverWithHandlerBehaviour;
 import environment.CityMap;
 import helpers.Log;
 import helpers.MessageHelper;
+import helpers.StringHelper;
+import jade.core.AID;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.CancelContractMessageContent;
+import messages.DeliveryProposeMessageContent;
+import messages.MakeContractMessageContent;
 import messages.PotentialContractMessageContent;
-import models.AgentSettings;
 import models.AgentType;
-import models.Consts;
 
 import java.util.Comparator;
-import java.util.UUID;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -30,6 +33,11 @@ public class StaticAgent extends AgentBase {
     @Override
     protected void setup() {
         super.setup();
+
+        startAnswerOnMakeContract();
+        startListenCancelledContracts();
+
+        receiveContract = null;
     }
 
     @Override
@@ -62,8 +70,12 @@ public class StaticAgent extends AgentBase {
                             var bestDeal = aclMessages.stream()
                                     .min(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .get(); // TODO isPresent
-                            var content = MessageHelper.getDeliveryProposeMessageContent(bestDeal.getContent());
+                            var content = MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class);
 
+                            if (receiveContract == null)
+                            {
+
+                            }
                             var potentialContract = new PotentialContractMessageContent(
                                     content.proposeId, getHome(), content.cost);
                             var message = MessageHelper.buildMessage2(
@@ -87,16 +99,74 @@ public class StaticAgent extends AgentBase {
         addBehaviour(sequentialBehaviour);
     }
 
+    private void startAnswerOnMakeContract(){
+        var mt = new MessageTemplate(msg ->
+                (msg.getPerformative() == ACLMessage.AGREE
+                        || msg.getPerformative() == ACLMessage.CANCEL)
+                        && StringHelper.safeEquals(msg.getOntology(), MakeContractMessageContent.class.getName()));
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
+            var content = MessageHelper.parse(aclMessage, MakeContractMessageContent.class);
+
+            if (aclMessage.getPerformative() == ACLMessage.CANCEL)
+                return;
+
+            if (receiveContract != null)
+                cancelCurrentReceiveContract();
+
+            receiveContract = content.contract;
+        }));
+    }
+
+    private void cancelCurrentReceiveContract() {
+        if (receiveContract == null)
+        {
+            Log.warn("Agent " + this.getName() + " tried to cancel receive contract, but he had no one!");
+            return;
+        }
+
+        var whoDeliversToMe = receiveContract.getProducer();
+
+        if (whoDeliversToMe.isBuzulka())
+        {
+            receiveContract = null;
+            return;
+        }
+
+        var message = MessageHelper.buildMessage2(
+                ACLMessage.REFUSE,
+                CancelContractMessageContent.class.getName(),
+                new CancelContractMessageContent(receiveContract));
+        message.addReceiver(new AID(whoDeliversToMe.getId(), true));
+    }
+
+    private void startListenCancelledContracts() {
+        var mt = new MessageTemplate(msg ->
+                msg.getPerformative() == ACLMessage.REFUSE
+                        && msg.getOntology().equals(CancelContractMessageContent.class.getName()));
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
+            var content = MessageHelper.parse(aclMessage, CancelContractMessageContent.class);
+
+            if (produceContracts.remove(content.contract))
+            {
+                // TODO recalculate cost for others
+            } else {
+                Log.warn("Agent " + this.getName() + " got cancellation for contract he hadn't own!");
+            }
+        }));
+    }
+
     private double getProposeDeliveryCost(ACLMessage message) {
-        var propose = MessageHelper.getDeliveryProposeMessageContent(message.getContent());
+        var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
         return propose.cost +
                 propose.points.stream()
-                        .map(x -> calculateCostToPoint(x))
+                        .map(this::calculateCostToPoint)
                         .min(Double::compareTo)
                         .get();
     }
 
-    protected double calculateCostToPoint(String point) {
+    private double calculateCostToPoint(String point) {
         return CityMap.getInstance().getPathWeight(getHome(), point);
     }
 }

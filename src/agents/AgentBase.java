@@ -9,6 +9,7 @@ import helpers.Log;
 import helpers.MessageHelper;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.AgentContainer;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
@@ -114,7 +115,7 @@ public abstract class AgentBase extends Agent {
         send(message);
     }
 
-    protected ContractParty toContractParty(){
-        return new AgentContractParty(this.getAID());
+    protected ContractParty toContractParty() {
+        return ContractParty.agent(this.getAID());
     }
 }

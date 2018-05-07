@@ -1,11 +1,17 @@
 package helpers;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.parser.Feature;
+import com.alibaba.fastjson.serializer.SerializeConfig;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.google.gson.Gson;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import messages.DeliveryProposeMessageContent;
 
 import java.util.ArrayList;
+
+import static com.alibaba.fastjson.serializer.SerializerFeature.DisableCircularReferenceDetect;
 
 public class MessageHelper {
     private final static String delimiter = "/";
@@ -27,7 +33,7 @@ public class MessageHelper {
         var message = new ACLMessage(performative);
 
         message.setOntology(messageType);
-        message.setContent(JSON.toJSONString(content));
+        message.setContent(JSON.toJSONString(content, DisableCircularReferenceDetect));
 
         return message;
     }
@@ -43,9 +49,9 @@ public class MessageHelper {
         return message;
     }
 
-    public static DeliveryProposeMessageContent getDeliveryProposeMessageContent(String content)
+    public static <T> T parse(ACLMessage message, Class<T> type)
     {
-        return JSON.parseObject(content, DeliveryProposeMessageContent.class);
+        return new Gson().fromJson(message.getContent(), type);
     }
 }
 
