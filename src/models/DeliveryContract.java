@@ -59,8 +59,9 @@ public class DeliveryContract {
         return chain;
     }
 
-    public boolean isProducerInPreviousContracts(AID agent) {
-        return previousContracts.stream()
+    public boolean isProducerInThisChain(AID agent) {
+        return this.producer.getId().equals(agent.getName())
+                || previousContracts.stream()
                 .map(DeliveryContractHistoryItem::getProducer)
                 .anyMatch(x -> x.getId().equals(agent.getName()));
     }

@@ -71,15 +71,26 @@ public class DynamicAgent extends AgentBase {
         );
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
-            var content = new DeliveryProposeMessageContent(route, calculateProposeDeliveryCost());
 
-            var answer = MessageHelper.buildMessage2(
-                    ACLMessage.PROPOSE,
-                    DeliveryProposeMessageContent.class.getName(),
-                    content
-            );
-            answer.setConversationId(aclMessage.getConversationId());
+            ACLMessage answer;
+            if (receiveContract.isProducerInThisChain(aclMessage.getSender()))
+            {
+                // found cycle, can't propose anything
+                answer = MessageHelper.buildMessage2(
+                        ACLMessage.REFUSE,
+                        DeliveryProposeMessageContent.class.getName(),
+                        null);
+            } else {
+                var content = new DeliveryProposeMessageContent(route, calculateProposeDeliveryCost());
+                answer = MessageHelper.buildMessage2(
+                        ACLMessage.PROPOSE,
+                        DeliveryProposeMessageContent.class.getName(),
+                        content
+                );
+            }
+
             answer.addReceiver(answerTo);
+            answer.setConversationId(aclMessage.getConversationId());
 
             send(answer);
         }));
@@ -104,6 +115,7 @@ public class DynamicAgent extends AgentBase {
                         aclMessages -> {
                             var currentCost = calculateCurrentDeliveryCost();
                             aclMessages.stream()
+                                    .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .filter(x -> getProposeDeliveryCost(x) < currentCost)
                                     .findFirst()
@@ -146,7 +158,7 @@ public class DynamicAgent extends AgentBase {
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, PotentialContractMessageContent.class);
             var isConditionsInForce = calculateProposeDeliveryCost() <= content.cost;
-            if (!isConditionsInForce || receiveContract.isProducerInPreviousContracts(aclMessage.getSender()))
+            if (!isConditionsInForce || receiveContract.isProducerInThisChain(aclMessage.getSender()))
             {
                 var answer = new ACLMessage(ACLMessage.CANCEL);
                 answer.setConversationId(content.getProposeId());

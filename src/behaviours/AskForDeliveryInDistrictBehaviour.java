@@ -53,7 +53,8 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     public MessageTemplate getAnswerMessageTemplate()
     {
         return new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.PROPOSE
+                (msg.getPerformative() == ACLMessage.PROPOSE
+                || msg.getPerformative() == ACLMessage.REFUSE)
                         && DeliveryProposeMessageContent.class.getName().equals(msg.getOntology())
                         && conversationId.equals(msg.getConversationId())
         );
