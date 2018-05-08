@@ -13,6 +13,8 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.DayResultMessageContent;
 import models.Consts;
+import models.ContractParty;
+import models.DeliveryContract;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -48,7 +50,7 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
         });
 
         self.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(
-                a, allAgents.size(), 2000,
+                a, allAgents.size(), 500,
                 new MessageTemplate(x -> StringHelper.safeEquals(x.getOntology(), DayResultMessageContent.class.getName())
                         && dayId.equals(x.getConversationId())),
                 aclMessages -> {
@@ -60,9 +62,29 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
 
                     var dailyRouteDelta = results.stream()
                             .map(DayResultMessageContent::getRouteDelta)
-                            .reduce((x, y) -> x+y); // sum() :(
+                            .reduce((x, y) -> x+y).get(); // sum() :(
 
                     Log.write("[BUS]DAY " + dayNumber + " result: " + dailyRouteDelta);
+
+                    aclMessages.stream()
+                            .forEach(x -> {
+                                var content = MessageHelper.parse(x, DayResultMessageContent.class);
+                                var receiveContract = content.getReceiveContract();
+
+                                String deliveryChain = "EMPTY";
+
+                                if (receiveContract != null)
+                                {
+                                    deliveryChain = getChainElement(receiveContract.getProducer(), receiveContract.getPoint())
+                                            + " "
+                                            + receiveContract.getPreviousContracts().stream()
+                                            .map(y -> getChainElement(y.getProducer(), y.getPoint()))
+                                            .reduce((s1, s2) -> s1 + " " + s2)
+                                            .orElse("");
+                                }
+
+                                Log.write("[BUS]" + x.getSender().getName() + "'s chain is: " + deliveryChain);
+                            });
 
                     var dayEndedMessage = MessageHelper.buildMessage(
                             ACLMessage.INFORM, Consts.GoodNight);
@@ -75,6 +97,17 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
                 stop();
             }
         });
+    }
+
+    private String getChainElement(ContractParty party, String point)
+    {
+        var producer = party.getId();
+        if (producer.contains("@")) // AID
+        {
+            producer = producer.substring(0, producer.indexOf("@"));
+        }
+
+        return "(" + producer + "," + point + ")";
     }
 
     @Override

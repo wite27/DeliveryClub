@@ -154,7 +154,7 @@ public class DynamicAgent extends AgentBase {
                 ));
             }
         });
-        sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 1000) {
+        sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 100) {
             @Override
             protected void onTick() {
                 enoughForMeInThisDay(true); // TODO wait for votes !!!
