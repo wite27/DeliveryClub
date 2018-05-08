@@ -27,10 +27,6 @@ import java.util.Comparator;
  * Created by K750JB on 24.03.2018.
  */
 public class DynamicAgent extends AgentBase {
-    private boolean isGoingToStore = false;
-    private int votesForMe = 0;
-    private int previousDayVotesForMe = 0;
-
     public DynamicAgent(){
         type = AgentType.Dynamic;
     }
@@ -54,6 +50,11 @@ public class DynamicAgent extends AgentBase {
     }
 
     @Override
+    protected double getCurrentReceiveCost() {
+        return receiveContract.getCost() / (produceContracts.size() + 1); // my receivers and me;
+    }
+
+    @Override
     protected double getRouteDelta() {
         var map = CityMap.getInstance();
         var baseRouteCost = map.getPathWeight(getHome(), getWork());
@@ -65,18 +66,6 @@ public class DynamicAgent extends AgentBase {
         }
 
         return currentRouteCost - baseRouteCost;
-    }
-
-    @Override
-    protected void onDayStart() {
-        previousDayVotesForMe = votesForMe;
-        votesForMe = 0;
-        startAskingForDelivery();
-    }
-
-    @Override
-    protected void onDayEnd() {
-
     }
 
     private void startListenHowMuchCostDeliveryToDistrict() {
@@ -93,13 +82,13 @@ public class DynamicAgent extends AgentBase {
                 // found cycle, can't propose anything
                 answer = MessageHelper.buildMessage2(
                         ACLMessage.REFUSE,
-                        DeliveryProposeMessageContent.class.getName(),
+                        DeliveryProposeMessageContent.class,
                         null);
             } else {
                 var content = new DeliveryProposeMessageContent(route, calculateProposeDeliveryCost());
                 answer = MessageHelper.buildMessage2(
                         ACLMessage.PROPOSE,
-                        DeliveryProposeMessageContent.class.getName(),
+                        DeliveryProposeMessageContent.class,
                         content
                 );
             }
@@ -109,60 +98,6 @@ public class DynamicAgent extends AgentBase {
 
             send(answer);
         }));
-    }
-
-    private void startAskingForDelivery() {
-        var sequentialBehaviour = new SequentialBehaviour(this);
-
-        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
-                currentConversationId);
-        sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
-
-        var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
-        var self = this;
-        sequentialBehaviour.addSubBehaviour(new OneShotBehaviour() { // need to resolve receiversCount in lazy way
-            @Override
-            public void action() {
-                sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(self,
-                        askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                        1000,
-                        mt,
-                        aclMessages -> {
-                            var currentCost = calculateCurrentDeliveryCost();
-                            aclMessages.stream()
-                                    .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
-                                    .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .filter(x -> getProposeDeliveryCost(x) < currentCost)
-                                    .findFirst()
-                                    .ifPresent(bestDeal -> {
-                                        isGoingToStore = false;
-                                        var content = MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class);
-                                        var calc = getProposeDeliveryCalcResult(bestDeal); // get best point from propose
-                                        var potentialContract = new PotentialContractMessageContent(
-                                                content.proposeId, calc.point, content.cost);
-                                        var message = MessageHelper.buildMessage2(
-                                                ACLMessage.ACCEPT_PROPOSAL,
-                                                PotentialContractMessageContent.class.getName(),
-                                                potentialContract);
-                                        message.setConversationId(content.proposeId);
-                                        Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
-                                                " from " + bestDeal.getSender().getName());
-                                        message.addReceiver(bestDeal.getSender());
-                                        self.send(message);
-                                    });
-                        }
-                ));
-            }
-        });
-        sequentialBehaviour.addSubBehaviour(new TickerBehaviour(this, 100) {
-            @Override
-            protected void onTick() {
-                enoughForMeInThisDay(true); // TODO wait for votes !!!
-                stop();
-            }
-        });
-
-        addBehaviour(sequentialBehaviour);
     }
 
     private void startAnswerOnPotentialContracts(){
@@ -177,7 +112,7 @@ public class DynamicAgent extends AgentBase {
             {
                 var answer = MessageHelper.buildMessage2(
                         ACLMessage.CANCEL,
-                        MakeContractMessageContent.class.getName(),
+                        MakeContractMessageContent.class,
                         null
                 );
                 answer.addReceiver(aclMessage.getSender());
@@ -191,7 +126,7 @@ public class DynamicAgent extends AgentBase {
                     content.cost, content.point, this.receiveContract.makeChain());
             var answer = MessageHelper.buildMessage2(
                     ACLMessage.AGREE,
-                    MakeContractMessageContent.class.getName(),
+                    MakeContractMessageContent.class,
                     new MakeContractMessageContent(contract));
             answer.addReceiver(aclMessage.getSender());
             send(answer);
@@ -254,7 +189,7 @@ public class DynamicAgent extends AgentBase {
 
         var message = MessageHelper.buildMessage2(
                 ACLMessage.REFUSE,
-                CancelContractMessageContent.class.getName(),
+                CancelContractMessageContent.class,
                 new CancelContractMessageContent(receiveContract));
         message.addReceiver(new AID(whoDeliversToMe.getId(), true));
         send(message);
@@ -295,13 +230,31 @@ public class DynamicAgent extends AgentBase {
         }));
     }
 
-    private double getProposeDeliveryCost(ACLMessage message) {
+    @Override
+    protected double getProposeDeliveryCost(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
         return propose.cost +
                propose.points.stream()
                        .map(x -> getCostToPoint(x).cost)
                        .min(Double::compareTo)
                        .get();
+    }
+
+    @Override
+    protected void betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content) {
+        var calc = getProposeDeliveryCalcResult(message); // get best point from propose
+        var potentialContract = new PotentialContractMessageContent(
+                content.proposeId, calc.point, content.cost);
+        var answer = MessageHelper.buildMessage2(
+                ACLMessage.ACCEPT_PROPOSAL,
+                PotentialContractMessageContent.class,
+                potentialContract);
+        answer.setConversationId(content.proposeId);
+        Log.fromAgent(this, "choosed best deal: " + message.getContent() +
+                " from " + message.getSender().getName());
+        answer.addReceiver(message.getSender());
+
+        this.send(answer);
     }
 
     private CalculateCostResult getProposeDeliveryCalcResult(ACLMessage message) {
@@ -315,11 +268,6 @@ public class DynamicAgent extends AgentBase {
     private double calculateProposeDeliveryCost()
     {
         return receiveContract.getCost() / (produceContracts.size() + 2); // my receivers, me and you
-    }
-
-    private double calculateCurrentDeliveryCost()
-    {
-        return receiveContract.getCost() / (produceContracts.size() + 1); // my receivers and me
     }
 
     private String getWork() {

@@ -28,11 +28,11 @@ public class MessageHelper {
         return message;
     }
 
-    public static ACLMessage buildMessage2(int performative, String messageType, Object content)
+    public static <T> ACLMessage buildMessage2(int performative, Class<T> type, T content)
     {
         var message = new ACLMessage(performative);
 
-        message.setOntology(messageType);
+        message.setOntology(type.getName());
         message.setContent(JSON.toJSONString(content, DisableCircularReferenceDetect));
 
         return message;

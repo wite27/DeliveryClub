@@ -1,6 +1,6 @@
 package messages;
 
-public class PotentialContractMessageContent extends MessageContentBase {
+public class PotentialContractMessageContent {
     private String proposeId;
     public String point;
     public double cost;

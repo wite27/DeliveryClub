@@ -2,7 +2,7 @@ package messages;
 
 import models.DeliveryContract;
 
-public class CancelContractMessageContent extends MessageContentBase {
+public class CancelContractMessageContent {
     public DeliveryContract contract;
 
     private CancelContractMessageContent() {}

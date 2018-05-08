@@ -28,8 +28,6 @@ public class StaticAgent extends AgentBase {
         type = AgentType.Static;
     }
 
-    private double bestDeliveryToDistrictDeal = Double.MAX_VALUE;
-
     @Override
     protected void setup() {
         super.setup();
@@ -41,80 +39,21 @@ public class StaticAgent extends AgentBase {
     }
 
     @Override
+    protected double getCurrentReceiveCost() {
+        if (receiveContract == null){
+            return Double.MAX_VALUE;
+        }
+
+        return receiveContract.getCost();
+    }
+
+    @Override
     protected double getRouteDelta() {
         if (receiveContract == null)
             return 0;
 
         // TODO Static agents has no route delta, it's dynamic's responsibility to deliver to static agent
         return CityMap.getInstance().getPathWeight(getHome(), receiveContract.getPoint());
-    }
-
-    @Override
-    protected void onDayStart() {
-        startAskingForDelivery();
-    }
-
-    @Override
-    protected void onDayEnd() {
-
-    }
-
-    private void startAskingForDelivery() {
-        var sequentialBehaviour = new SequentialBehaviour();
-
-        var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
-                currentConversationId);
-        sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
-
-        var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
-        var self = this;
-        sequentialBehaviour.addSubBehaviour(new OneShotBehaviour() { // need to resolve receiversCount in lazy way
-            @Override
-            public void action() {
-                sequentialBehaviour.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(self,
-                        askForDeliveryInDistrictBehaviour.getReceiversCount(),
-                        1000,
-                        mt,
-                        aclMessages -> {
-                            var currentCost = receiveContract == null
-                                    ? Double.MAX_VALUE
-                                    : receiveContract.getCost();
-
-                            var bestDealOptional = aclMessages.stream()
-                                    .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
-                                    .filter(x -> getProposeDeliveryCost(x) < currentCost)
-                                    .min(Comparator.comparingDouble(self::getProposeDeliveryCost));
-
-                            if (!bestDealOptional.isPresent())
-                            {
-                                enoughForMeInThisDay(false);
-                                return;
-                            }
-
-                            var bestDeal = bestDealOptional.get();
-                            var content = MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class);
-
-                            var potentialContract = new PotentialContractMessageContent(
-                                    content.proposeId, getHome(), content.cost);
-                            var message = MessageHelper.buildMessage2(
-                                    ACLMessage.ACCEPT_PROPOSAL,
-                                    PotentialContractMessageContent.class.getName(),
-                                    potentialContract);
-                            message.setConversationId(content.proposeId);
-                            Log.fromAgent(self, "choosed best deal: " + bestDeal.getContent() +
-                                    " from " + bestDeal.getSender().getName());
-                            message.addReceiver(bestDeal.getSender());
-                            self.send(message);
-
-                            var dealCost = getProposeDeliveryCost(bestDeal);
-                            var needNextDay = Math.abs(dealCost - bestDeliveryToDistrictDeal) > 0.001;
-                            bestDeliveryToDistrictDeal = dealCost;
-                            enoughForMeInThisDay(needNextDay);
-                        }));
-            }
-        });
-
-        addBehaviour(sequentialBehaviour);
     }
 
     private void startAnswerOnMakeContract(){
@@ -153,7 +92,7 @@ public class StaticAgent extends AgentBase {
 
         var message = MessageHelper.buildMessage2(
                 ACLMessage.REFUSE,
-                CancelContractMessageContent.class.getName(),
+                CancelContractMessageContent.class,
                 new CancelContractMessageContent(receiveContract));
         message.addReceiver(new AID(whoDeliversToMe.getId(), true));
     }
@@ -175,13 +114,30 @@ public class StaticAgent extends AgentBase {
         }));
     }
 
-    private double getProposeDeliveryCost(ACLMessage message) {
+    @Override
+    protected double getProposeDeliveryCost(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
         return propose.cost +
                 propose.points.stream()
                         .map(this::calculateCostToPoint)
                         .min(Double::compareTo)
                         .get();
+    }
+
+    @Override
+    protected void betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content) {
+        var potentialContract = new PotentialContractMessageContent(
+                content.proposeId, getHome(), content.cost);
+        var answer = MessageHelper.buildMessage2(
+                ACLMessage.ACCEPT_PROPOSAL,
+                PotentialContractMessageContent.class,
+                potentialContract);
+        answer.setConversationId(content.proposeId);
+        Log.fromAgent(this, "choosed best deal: " + message.getContent() +
+                " from " + message.getSender().getName());
+        answer.addReceiver(message.getSender());
+
+        this.send(answer);
     }
 
     private double calculateCostToPoint(String point) {

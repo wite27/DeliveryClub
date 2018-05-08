@@ -40,7 +40,6 @@ public class AgentHelper {
         }
     }
 
-
     public static ArrayList<DFAgentDescription> findAgents(Agent self, AgentType type, int district)
     {
         return findAgents(self, type, district, true);

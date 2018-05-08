@@ -3,6 +3,8 @@ package models;
 public class Consts {
     public static final String District = "District";
 
+    public static final String StatsmanType = "Statsman";
+
     public static final String HowMuchCostDeliveryToDistrict = "HOW_MUCH_COST_DELIVERY_TO_DISTRICT?";
     public static final String IWillDeliverToDistrictPrefix = "I_WILL_DELIVER_TO_DISTRICT_FOR:";
     public static final String IChooseYou = "I_CHOOSE_YOU";

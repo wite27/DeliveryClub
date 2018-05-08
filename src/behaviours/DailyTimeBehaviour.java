@@ -58,7 +58,7 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
                             .map(x -> MessageHelper.parse(x, DayResultMessageContent.class))
                             .collect(Collectors.toList());
 
-                    isNextDayNeeded = results.stream().anyMatch(DayResultMessageContent::isNeedNextDay);
+                    //isNextDayNeeded = results.stream().anyMatch(DayResultMessageContent::isNeedNextDay);
 
                     var dailyRouteDelta = results.stream()
                             .map(DayResultMessageContent::getRouteDelta)
