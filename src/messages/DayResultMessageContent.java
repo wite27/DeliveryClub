@@ -8,14 +8,17 @@ public class DayResultMessageContent {
     private DeliveryContract receiveContract;
     private HashSet<DeliveryContract> produceContracts;
     private boolean needNextDay;
+    private double routeDelta;
 
     public DayResultMessageContent(
             DeliveryContract receiveContract,
             HashSet<DeliveryContract> produceContracts,
-            boolean needNextDay) {
+            boolean needNextDay,
+            double routeDelta) {
         this.receiveContract = receiveContract;
         this.produceContracts = produceContracts;
         this.needNextDay = needNextDay;
+        this.routeDelta = routeDelta;
     }
 
     public boolean isNeedNextDay() {
@@ -28,5 +31,9 @@ public class DayResultMessageContent {
 
     public DeliveryContract getReceiveContract() {
         return receiveContract;
+    }
+
+    public double getRouteDelta() {
+        return routeDelta;
     }
 }

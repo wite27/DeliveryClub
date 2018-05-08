@@ -58,6 +58,11 @@ public class DailyTimeBehaviour extends SequentialBehaviour {
 
                     isNextDayNeeded = results.stream().anyMatch(DayResultMessageContent::isNeedNextDay);
 
+                    var dailyRouteDelta = results.stream()
+                            .map(DayResultMessageContent::getRouteDelta)
+                            .reduce((x, y) -> x+y); // sum() :(
+
+                    Log.write("[BUS]DAY " + dayNumber + " result: " + dailyRouteDelta);
 
                     var dayEndedMessage = MessageHelper.buildMessage(
                             ACLMessage.INFORM, Consts.GoodNight);

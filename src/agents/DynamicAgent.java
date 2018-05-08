@@ -54,6 +54,20 @@ public class DynamicAgent extends AgentBase {
     }
 
     @Override
+    protected double getRouteDelta() {
+        var map = CityMap.getInstance();
+        var baseRouteCost = map.getPathWeight(getHome(), getWork());
+
+        var currentRouteCost = 0.0;
+        for (int i = 0; i < route.size() - 1; i++)
+        {
+            currentRouteCost += map.getPathWeight(route.get(i), route.get(i + 1));
+        }
+
+        return currentRouteCost - baseRouteCost;
+    }
+
+    @Override
     protected void onDayStart() {
         previousDayVotesForMe = votesForMe;
         votesForMe = 0;

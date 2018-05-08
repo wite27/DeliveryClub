@@ -41,6 +41,15 @@ public class StaticAgent extends AgentBase {
     }
 
     @Override
+    protected double getRouteDelta() {
+        if (receiveContract == null)
+            return 0;
+
+        // TODO Static agents has no route delta, it's dynamic's responsibility to deliver to static agent
+        return CityMap.getInstance().getPathWeight(getHome(), receiveContract.getPoint());
+    }
+
+    @Override
     protected void onDayStart() {
         startAskingForDelivery();
     }

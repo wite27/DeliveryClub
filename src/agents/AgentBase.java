@@ -1,15 +1,9 @@
 package agents;
 
-import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
-import behaviours.AskForDeliveryInDistrictBehaviour;
-import environment.CityMap;
-import environment.Store;
-import helpers.Log;
 import helpers.MessageHelper;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.AgentContainer;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
@@ -18,7 +12,6 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.DayResultMessageContent;
-import messages.YouAreDistrictLeaderMessage;
 import models.*;
 
 import java.util.*;
@@ -112,7 +105,7 @@ public abstract class AgentBase extends Agent {
         var message = MessageHelper.buildMessage2(
                 ACLMessage.INFORM,
                 DayResultMessageContent.class.getName(),
-                new DayResultMessageContent(receiveContract, produceContracts, true));
+                new DayResultMessageContent(receiveContract, produceContracts, true, getRouteDelta()));
         message.addReceiver(coordinatorAid);
         message.setConversationId(dayId);
         send(message);
@@ -121,4 +114,6 @@ public abstract class AgentBase extends Agent {
     protected ContractParty toContractParty() {
         return ContractParty.agent(this.getAID());
     }
+
+    protected abstract double getRouteDelta();
 }
