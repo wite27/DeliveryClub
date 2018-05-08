@@ -29,6 +29,9 @@ public class Log {
     public static void messageReceived(Agent agent, ACLMessage message) {
         printWithTime("Agent " + agent.getName()
                 + " got message " + message.getContent()
+                + (message.getOntology() != null
+                    ? " of type " + message.getOntology()
+                    : "")
                 + " from " + message.getSender().getName());
     }
 

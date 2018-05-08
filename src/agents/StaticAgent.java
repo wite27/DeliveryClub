@@ -67,15 +67,24 @@ public class StaticAgent extends AgentBase {
                         1000,
                         mt,
                         aclMessages -> {
-                            var bestDeal = aclMessages.stream()
-                                    .min(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .get(); // TODO isPresent
+                            var currentCost = receiveContract == null
+                                    ? Double.MAX_VALUE
+                                    : receiveContract.getCost();
+
+                            var bestDealOptional = aclMessages.stream()
+                                    .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
+                                    .filter(x -> getProposeDeliveryCost(x) < currentCost)
+                                    .min(Comparator.comparingDouble(self::getProposeDeliveryCost));
+
+                            if (!bestDealOptional.isPresent())
+                            {
+                                enoughForMeInThisDay(false);
+                                return;
+                            }
+
+                            var bestDeal = bestDealOptional.get();
                             var content = MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class);
 
-                            if (receiveContract == null)
-                            {
-
-                            }
                             var potentialContract = new PotentialContractMessageContent(
                                     content.proposeId, getHome(), content.cost);
                             var message = MessageHelper.buildMessage2(

@@ -1,5 +1,6 @@
 package models;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import jade.core.AID;
 
 import java.util.ArrayList;
@@ -25,11 +26,22 @@ public class DeliveryContract {
 
     private DeliveryContract() {}
 
+    @JSONField(ordinal = 1)
     private String id;
+
+    @JSONField(ordinal = 2)
     private ContractParty producer;
+
+    @JSONField(ordinal = 3)
     private ContractParty consumer;
+
+    @JSONField(ordinal = 4)
     private double cost;
+
+    @JSONField(ordinal = 5)
     private String point;
+
+    @JSONField(ordinal = 6)
     private ArrayList<DeliveryContractHistoryItem> previousContracts;
 
     public String getId() {return id;}

@@ -46,6 +46,7 @@ public class DynamicAgent extends AgentBase {
                 costToStore.cost,
                 costToStore.point,
                 new ArrayList<>()));
+
         startListenHowMuchCostDeliveryToDistrict();
         startAnswerOnPotentialContracts();
         startAnswerOnMakeContract();
@@ -160,8 +161,11 @@ public class DynamicAgent extends AgentBase {
             var isConditionsInForce = calculateProposeDeliveryCost() <= content.cost;
             if (!isConditionsInForce || receiveContract.isProducerInThisChain(aclMessage.getSender()))
             {
-                var answer = new ACLMessage(ACLMessage.CANCEL);
-                answer.setConversationId(content.getProposeId());
+                var answer = MessageHelper.buildMessage2(
+                        ACLMessage.CANCEL,
+                        MakeContractMessageContent.class.getName(),
+                        null
+                );
                 answer.addReceiver(aclMessage.getSender());
                 send(answer);
 
@@ -239,6 +243,23 @@ public class DynamicAgent extends AgentBase {
                 CancelContractMessageContent.class.getName(),
                 new CancelContractMessageContent(receiveContract));
         message.addReceiver(new AID(whoDeliversToMe.getId(), true));
+        send(message);
+
+        removeReceiveContract();
+    }
+
+    private void removeReceiveContract() {
+        if (receiveContract == null)
+        {
+            Log.warn("Agent " + this.getName() + " tried to remove receive contract, but he had no one!");
+            return;
+        }
+
+        var point = receiveContract.getPoint();
+        if (point.equals(getHome()) || point.equals(getWork()))
+            return;
+
+        route.remove(point);
 
         receiveContract = null;
     }
@@ -246,7 +267,7 @@ public class DynamicAgent extends AgentBase {
     private void startListenCancelledContracts() {
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.REFUSE
-                && msg.getOntology().equals(CancelContractMessageContent.class.getName()));
+                && StringHelper.safeEquals(msg.getOntology(), CancelContractMessageContent.class.getName()));
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, CancelContractMessageContent.class);
