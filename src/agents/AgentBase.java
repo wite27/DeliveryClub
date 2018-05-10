@@ -119,6 +119,7 @@ public abstract class AgentBase extends Agent {
             addBehaviour(newIteration());
             return;
         }
+
         var sequentialBehaviour = new SequentialBehaviour();
 
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
@@ -224,7 +225,9 @@ public abstract class AgentBase extends Agent {
     }
 
     private void startListenUpdateContractCostMessages(){
-        var mt = MessageTemplateFactory.create(ACLMessage.INFORM, UpdateContractCostMessageContent.class);
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.INFORM,
+                UpdateContractCostMessageContent.class);
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, x -> {
             var content = MessageHelper.parse(x, UpdateContractCostMessageContent.class);

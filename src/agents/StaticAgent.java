@@ -2,6 +2,7 @@ package agents;
 
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import environment.CityMap;
+import factories.MessageTemplateFactory;
 import helpers.Log;
 import helpers.MessageHelper;
 import helpers.StringHelper;
@@ -56,10 +57,9 @@ public class StaticAgent extends AgentBase {
     }
 
     private void startAnswerOnMakeContract(){
-        var mt = new MessageTemplate(msg ->
-                (msg.getPerformative() == ACLMessage.AGREE
-                        || msg.getPerformative() == ACLMessage.CANCEL)
-                        && StringHelper.safeEquals(msg.getOntology(), MakeContractMessageContent.class.getName()));
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.AGREE, ACLMessage.CANCEL,
+                MakeContractMessageContent.class);
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, MakeContractMessageContent.class);

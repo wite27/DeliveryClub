@@ -154,9 +154,9 @@ public class DynamicAgent extends AgentBase {
     }
 
     private void startAnswerOnPotentialContracts(){
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL
-                && StringHelper.safeEquals(msg.getOntology(), PotentialContractMessageContent.class.getName()));
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.ACCEPT_PROPOSAL,
+                PotentialContractMessageContent.class);
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, PotentialContractMessageContent.class);
@@ -172,6 +172,8 @@ public class DynamicAgent extends AgentBase {
                 || !content.getContract().hasEqualProducersChain(receiveContract.makeChain())
                 || !isAvailableToMakeContractWithAgent(aclMessage.getSender()))
             {
+                Log.fromAgent(this, " didn't accept contract " + content.getContract().toShortString()
+                + ". Current cost: " + costIfMakeContractNow);
                 var answer = MessageHelper.buildMessage(
                         ACLMessage.CANCEL,
                         MakeContractMessageContent.class,
@@ -274,9 +276,9 @@ public class DynamicAgent extends AgentBase {
     }
 
     private void startListenCancelledContracts() {
-        var mt = new MessageTemplate(msg ->
-                msg.getPerformative() == ACLMessage.REFUSE
-                && StringHelper.safeEquals(msg.getOntology(), CancelContractMessageContent.class.getName()));
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.REFUSE,
+                CancelContractMessageContent.class);
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, CancelContractMessageContent.class);
@@ -437,10 +439,9 @@ public class DynamicAgent extends AgentBase {
                         " succeced");
                 acceptContractImmediately(proposerAid, awaitingPotentialContract);
 
-                var mt = new MessageTemplate(msg ->
-                        (msg.getPerformative() == ACLMessage.AGREE
-                                || msg.getPerformative() == ACLMessage.CANCEL)
-                                && StringHelper.safeEquals(msg.getOntology(), MakeContractMessageContent.class.getName()));
+                var mt = MessageTemplateFactory.create(
+                        ACLMessage.AGREE, ACLMessage.CANCEL,
+                        MakeContractMessageContent.class);
 
                 var receiveContractBehaviour = new ReceiverWithHandlerBehaviour(
                         this,1000, mt, aclMessage -> {
@@ -480,10 +481,9 @@ public class DynamicAgent extends AgentBase {
     }
 
     private Behaviour waitForContractConfirmationWithoutCheck() {
-        var mt = new MessageTemplate(msg ->
-                (msg.getPerformative() == ACLMessage.AGREE
-                        || msg.getPerformative() == ACLMessage.CANCEL)
-                        && StringHelper.safeEquals(msg.getOntology(), MakeContractMessageContent.class.getName()));
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.AGREE, ACLMessage.CANCEL,
+                MakeContractMessageContent.class);
 
         return new ReceiverWithHandlerBehaviour(
                 this,1000, mt, aclMessage -> {
