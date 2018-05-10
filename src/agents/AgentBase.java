@@ -20,6 +20,8 @@ import models.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static models.Consts.ContractCancelPenaltyInSec;
+
 /**
  * Created by K750JB on 24.03.2018.
  */
@@ -38,15 +40,34 @@ public abstract class AgentBase extends Agent {
 
     protected HashSet<CheckEntry> currentChecks = new HashSet<>();
 
+    private long startTime;
+    private double getCurrentSeconds() {
+        return (System.currentTimeMillis() - startTime) / 1000.0;
+    }
+    private double getCurrentContractCancelPenalty() {
+        return getCurrentSeconds() * ContractCancelPenaltyInSec;
+    }
+
     @Override
     protected void setup() {
         super.setup();
-
+        startTime = System.currentTimeMillis();
         init();
 
         startAskingForDelivery();
         startListenUpdateContractCostMessages();
         StartListenCheckRequests();
+
+        startPeriodicallySendStats();
+    }
+
+    private void startPeriodicallySendStats() {
+        addBehaviour(new TickerBehaviour(this, 500) {
+            @Override
+            protected void onTick() {
+                sendStats();
+            }
+        });
     }
 
     private void init() {
@@ -95,7 +116,10 @@ public abstract class AgentBase extends Agent {
                         1000,
                         mt,
                         aclMessages -> {
-                            var currentCost = getCurrentReceiveCost();
+                            var currentCost = getCurrentReceiveCost() -
+                                    (receiveContract == null
+                                    ? 0
+                                    : getCurrentContractCancelPenalty());
                             aclMessages.stream()
                                     .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
                                     .filter(x -> !isAgentInCheckStatus(x.getSender())) // ignore agents under check

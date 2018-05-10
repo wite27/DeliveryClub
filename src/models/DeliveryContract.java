@@ -3,14 +3,11 @@ package models;
 import com.alibaba.fastjson.annotation.JSONField;
 import helpers.AgentHelper;
 import jade.core.AID;
-import models.interfaces.IShortContactInfo;
 
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-public class DeliveryContract implements IShortContactInfo {
+public class DeliveryContract {
     public DeliveryContract(
             ContractParty producer,
             ContractParty consumer,
@@ -60,16 +57,6 @@ public class DeliveryContract implements IShortContactInfo {
         return cost;
     }
 
-    @Override
-    public String getProducerId() {
-        return producer.getId();
-    }
-
-    @Override
-    public String getConsumerId() {
-        return consumer.getId();
-    }
-
     public String getPoint() {
         return point;
     }
@@ -108,8 +95,28 @@ public class DeliveryContract implements IShortContactInfo {
         //        Objects.equals(consumer, that.consumer);
     }
 
+    public boolean hasEqualProducersChain(ArrayList<DeliveryContractHistoryItem> other) {
+        if (this.previousContracts.size() != other.size())
+            return false;
+
+        for (int i = 0; i < this.previousContracts.size(); i++) {
+            if (!this.previousContracts.get(i).getProducer()
+                    .equals(other.get(i).getProducer()))
+                return false;
+        }
+
+        return true;
+    }
+
     @Override
     public int hashCode() {
         return id.hashCode();
+    }
+
+    public String toShortString()
+    {
+        return AgentHelper.getLocalName(producer.getId()) + " -> " +
+                AgentHelper.getLocalName(consumer.getId()) + " in " +
+                point + " for " + cost;
     }
 }

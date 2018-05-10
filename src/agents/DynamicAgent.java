@@ -17,11 +17,11 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.*;
 import models.*;
-import models.interfaces.IShortContactInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -100,8 +100,7 @@ public class DynamicAgent extends AgentBase {
                         DeliveryProposeMessageContent.class,
                         null);
             } else {
-                var content = new DeliveryProposeMessageContent(
-                        route, calculateCostWhichIPropose(), receiveContract.getPreviousContracts());
+                var content = createProposeTo(answerTo);
                 answer = MessageHelper.buildMessage(
                         ACLMessage.PROPOSE,
                         DeliveryProposeMessageContent.class,
@@ -116,6 +115,18 @@ public class DynamicAgent extends AgentBase {
         }));
     }
 
+    private DeliveryProposeMessageContent createProposeTo(AID agent) {
+        var cost = calculateCostWhichIPropose();
+        return new DeliveryProposeMessageContent(route.stream()
+                .map(x -> new DeliveryContract(
+                        this.toContractParty(),
+                        ContractParty.agent(agent),
+                        cost,
+                        x,
+                        receiveContract.makeChain()
+                )).collect(Collectors.toCollection(ArrayList::new)));
+    }
+
     private void startAnswerOnPotentialContracts(){
         var mt = new MessageTemplate(msg ->
                 msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL
@@ -123,8 +134,11 @@ public class DynamicAgent extends AgentBase {
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, PotentialContractMessageContent.class);
-            var isConditionsInForce = calculateCostWhichIPropose() <= content.getCost();
-            if (!isConditionsInForce
+
+            var isConditionsInForce = calculateCostWhichIPropose() <= content.getContract().getCost();
+            if (awaitingPotentialContract != null
+                || !isConditionsInForce
+                || !content.getContract().hasEqualProducersChain(receiveContract.makeChain())
                 || !isAvailableToMakeContractWithAgent(aclMessage.getSender()))
             {
                 var answer = MessageHelper.buildMessage(
@@ -141,8 +155,8 @@ public class DynamicAgent extends AgentBase {
             var contract = new DeliveryContract(
                     this.toContractParty(),
                     ContractParty.agent(aclMessage.getSender()),
-                    content.getCost(),
-                    content.getPoint(),
+                    content.getContract().getCost(),
+                    content.getContract().getPoint(),
                     this.receiveContract.makeChain());
 
             var answer = MessageHelper.buildMessage(
@@ -164,7 +178,7 @@ public class DynamicAgent extends AgentBase {
         }
 
         receiveContract = contract;
-        Log.fromAgent(this, "got new receive contract: " + IShortContactInfo.print(this.receiveContract));
+        Log.fromAgent(this, "got new receive contract: " + this.receiveContract.toShortString());
 
         // TODO multipoint
         var calc = getCostToPointSimple(contract.getPoint());
@@ -265,8 +279,8 @@ public class DynamicAgent extends AgentBase {
     protected double getProposeDeliveryCost(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
 
-        return propose.points.stream()
-                .map(x -> getCostToPointSimple(x))
+        return propose.getContracts().stream()
+                .map(x -> getCostToPointSimple(x.getPoint()))
                 .min(Comparator.comparingDouble(x -> x.cost)).get().cost;
         // TODO multipoint
         /*var currentCost = getCurrentReceiveCost();
@@ -317,17 +331,15 @@ public class DynamicAgent extends AgentBase {
         }
         var proposerAid = message.getSender();
 
-        var calc = getProposeDeliveryCalcResult(message); // get best point from propose
-        var potentialContract = new PotentialContractMessageContent(
-                content.proposeId, proposerAid.getName(), this.getName(), calc.point, content.cost,
-                content.previousContracts);
+        var bestPropose = getProposeDeliveryCalcResult(message); // get best point from propose
+        var potentialContract = new PotentialContractMessageContent(bestPropose, content.getProposeId());
 
         awaitingPotentialContract = potentialContract;
-        Log.fromAgent(this, " got awaiting contract: " + IShortContactInfo.print(potentialContract));
+        Log.fromAgent(this, " got awaiting contract: " + potentialContract.getContract().toShortString());
 
         if (produceContracts.size() == 0) {
-            Log.fromAgent(this, " has no produceContract and accepted awaiting contract: "
-                    + IShortContactInfo.print(potentialContract));
+            Log.fromAgent(this, " has no produceContracts and accepted awaiting contract: "
+                    + potentialContract.getContract().toShortString());
             // no need to wait commit from children
             acceptContractImmediately(proposerAid, potentialContract);
             return waitForContractConfirmationWithoutCheck();
@@ -382,13 +394,14 @@ public class DynamicAgent extends AgentBase {
 
                 var receiveContractBehaviour = new ReceiverWithHandlerBehaviour(
                         this,1000, mt, aclMessage -> {
-                    var contractContent = MessageHelper.parse(aclMessage, MakeContractMessageContent.class);
-
-                    if (aclMessage.getPerformative() == ACLMessage.CANCEL)
+                    if (aclMessage == null // something went wrong
+                        || aclMessage.getPerformative() == ACLMessage.CANCEL)
                     {
                         cancelAwaitingContract(check.getCheckId(), myReceivers);
                         return;
                     }
+
+                    var contractContent = MessageHelper.parse(aclMessage, MakeContractMessageContent.class);
 
                     if (receiveContract != null)
                         cancelCurrentReceiveContract();
@@ -445,7 +458,8 @@ public class DynamicAgent extends AgentBase {
             Log.warn("Agent " + this.getName() + " tried to cancel awaiting contract, but he had not one!");
             return;
         }
-        var content = AwaitingContractDecisionMessageContent.failed(awaitingPotentialContract.getProducerId());
+        var content = AwaitingContractDecisionMessageContent.failed(
+                awaitingPotentialContract.getContract().getProducer().getId());
         var message = MessageHelper.buildMessage(
                 ACLMessage.INFORM,
                 AwaitingContractDecisionMessageContent.class,
@@ -463,7 +477,7 @@ public class DynamicAgent extends AgentBase {
         var isBlockedByParentsCheck = currentChecks.stream()
                 .anyMatch(x -> x.getProducerId().equals(agent.getName()));
         var isAwaitingHimAsDeliveryman = awaitingPotentialContract != null
-                && awaitingPotentialContract.getProducerId().equals(agent.getName());
+                && awaitingPotentialContract.getContract().getProducer().getId().equals(agent.getName());
         var isPotentialCycle = awaitingPotentialContract != null
             && awaitingPotentialContract.isProducerInThisChain(agent);
 
@@ -472,7 +486,7 @@ public class DynamicAgent extends AgentBase {
         if (isAwaitingHimAsDeliveryman) Log.fromAgent(this, "already awaiting " + agent.getName() +
                 " as deliveryman");
         if (isPotentialCycle) Log.fromAgent(this, "potential cycle with " + agent.getName() +
-                " because awaiting " + awaitingPotentialContract.getProducerId());
+                " because awaiting " + awaitingPotentialContract.getContract().getProducer().getId());
 
         return (!isCycle
                 && !isBlockedByParentsCheck
@@ -480,12 +494,11 @@ public class DynamicAgent extends AgentBase {
                 && !isPotentialCycle);
     }
 
-    private CalculateCostResult getProposeDeliveryCalcResult(ACLMessage message) {
+    private DeliveryContract getProposeDeliveryCalcResult(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
-        return propose.points.stream()
+        return propose.getContracts().stream()
                 // TODO multipoint
-                .map(x -> getCostToPointSimple(x))
-                .min(Comparator.comparingDouble(x -> x.cost))
+                .min(Comparator.comparingDouble(x -> x.getCost() + getCostToPointSimple(x.getPoint()).cost))
                 .get();
     }
 

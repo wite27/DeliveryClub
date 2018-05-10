@@ -14,7 +14,8 @@ import messages.DeliveryProposeMessageContent;
 import messages.MakeContractMessageContent;
 import messages.PotentialContractMessageContent;
 import models.AgentType;
-import models.interfaces.IShortContactInfo;
+
+import java.util.Comparator;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -68,7 +69,7 @@ public class StaticAgent extends AgentBase {
                 cancelCurrentReceiveContract();
 
             receiveContract = content.contract;
-            Log.fromAgent(this, "got new receive contract: " + IShortContactInfo.print(receiveContract));
+            Log.fromAgent(this, "got new receive contract: " + receiveContract.toShortString());
         }));
     }
 
@@ -101,23 +102,23 @@ public class StaticAgent extends AgentBase {
     @Override
     protected double getProposeDeliveryCost(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
-        return propose.cost +
-                propose.points.stream()
-                        .map(this::calculateCostToPoint)
-                        .min(Double::compareTo)
-                        .get();
+        return propose.getContracts().stream()
+                .map(x -> calculateCostToPoint(x.getPoint()) + x.getCost())
+                .min(Double::compareTo)
+                .get();
     }
 
     @Override
     protected Behaviour betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content) {
         var potentialContract = new PotentialContractMessageContent(
-                content.proposeId, message.getSender().getName(), this.getName(), this.getHome(), content.cost,
-                content.previousContracts);
+                content.getContracts().stream()
+                        .min(Comparator.comparingDouble(x -> x.getCost() + calculateCostToPoint(x.getPoint())))
+                        .get(), content.getProposeId());
         var answer = MessageHelper.buildMessage(
                 ACLMessage.ACCEPT_PROPOSAL,
                 PotentialContractMessageContent.class,
                 potentialContract);
-        answer.setConversationId(content.proposeId);
+        answer.setConversationId(content.getProposeId());
         Log.fromAgent(this, "choosed best deal: " + message.getContent() +
                 " from " + message.getSender().getName());
         answer.addReceiver(message.getSender());
