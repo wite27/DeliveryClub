@@ -201,7 +201,7 @@ public class DynamicAgent extends AgentBase {
             answer.addReceiver(aclMessage.getSender());
             send(answer);
 
-            this.produceContracts.add(contract);
+            addProducingContract(contract);
         }));
     }
 
@@ -275,6 +275,16 @@ public class DynamicAgent extends AgentBase {
         receiveContract = null;
     }
 
+    private void addProducingContract(DeliveryContract contract) {
+        this.produceContracts.add(contract);
+        if (!contract.isProducerDelivery
+             || route.contains(contract.getPoint()))
+            return;
+
+        var costToPointResult = getCostToPoint(contract.getPoint());
+        route = costToPointResult.getNewRoute(route);
+    }
+
     private void startListenCancelledContracts() {
         var mt = MessageTemplateFactory.create(
                 ACLMessage.REFUSE,
@@ -283,13 +293,29 @@ public class DynamicAgent extends AgentBase {
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, CancelContractMessageContent.class);
 
-            if (produceContracts.remove(content.contract))
+            if (removeProducingContract(content.contract))
             {
                 updateProduceContractsCostIfNeed();
             } else {
                 Log.warn("Agent " + this.getName() + " got cancellation for contract he hadn't own!");
             }
         }));
+    }
+
+    private boolean removeProducingContract(DeliveryContract contract) {
+        if (produceContracts.remove(contract)){
+            var point = contract.getPoint();
+
+            var hasDependencyOnThisPoint = produceContracts.stream()
+                    .anyMatch(x -> x.getPoint().equals(point))
+                    || receiveContract.getPoint().equals(point);
+
+            if (!hasDependencyOnThisPoint) {
+                route.remove(point);
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
