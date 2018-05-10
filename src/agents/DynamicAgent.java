@@ -334,7 +334,7 @@ public class DynamicAgent extends AgentBase {
         }
 
         var myReceivers = getMyReceivers();
-        var check = new IsProducerPresentInYourChain(proposerAid.getName());
+        var check = new CheckChainRequestMessageContent(proposerAid.getName());
 
         var self = this;
         var sequence = new SequentialBehaviour(this);
@@ -343,7 +343,7 @@ public class DynamicAgent extends AgentBase {
             public void action() {
                 var message = MessageHelper.buildMessage(
                         ACLMessage.INFORM_IF,
-                        IsProducerPresentInYourChain.class,
+                        CheckChainRequestMessageContent.class,
                         check
                 );
                 message.setConversationId(check.getCheckId());
@@ -358,12 +358,12 @@ public class DynamicAgent extends AgentBase {
                 1000,
                 MessageTemplateFactory.create(
                         ACLMessage.INFORM,
-                        IsProducerPresentInChainResponseMessageContent.class,
+                        CheckChainResponseMessageContent.class,
                         check.getCheckId()), results -> {
             var isCheckFailed =
                     results.size() != myReceivers.size()
                     || results.stream()
-                        .anyMatch(x -> MessageHelper.parse(x, IsProducerPresentInChainResponseMessageContent.class)
+                        .anyMatch(x -> MessageHelper.parse(x, CheckChainResponseMessageContent.class)
                         .isPresent());
             if (isCheckFailed)
             {

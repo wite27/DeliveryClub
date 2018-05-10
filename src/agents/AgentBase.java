@@ -170,10 +170,10 @@ public abstract class AgentBase extends Agent {
     private void StartListenCheckRequests() {
         var mt = MessageTemplateFactory.create(
                 ACLMessage.INFORM_IF,
-                IsProducerPresentInYourChain.class);
+                CheckChainRequestMessageContent.class);
 
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, x -> {
-            var content = MessageHelper.parse(x, IsProducerPresentInYourChain.class);
+            var content = MessageHelper.parse(x, CheckChainRequestMessageContent.class);
             var requesterAid = x.getSender();
             var nameUnderCheck = content.getProducerId();
             var checkId = content.getCheckId();
@@ -240,8 +240,8 @@ public abstract class AgentBase extends Agent {
             if (myReceivers.size() != 0) {
                 var furtherRequest = MessageHelper.buildMessage(
                         ACLMessage.INFORM_IF,
-                        IsProducerPresentInYourChain.class,
-                        new IsProducerPresentInYourChain(checkId, nameUnderCheck));
+                        CheckChainRequestMessageContent.class,
+                        new CheckChainRequestMessageContent(checkId, nameUnderCheck));
                 furtherRequest.setConversationId(checkId);
                 MessageHelper.addReceivers(furtherRequest, myReceivers);
 
@@ -251,13 +251,13 @@ public abstract class AgentBase extends Agent {
                         myReceivers.size(), 1000,
                         MessageTemplateFactory.create(
                                 ACLMessage.INFORM,
-                                IsProducerPresentInChainResponseMessageContent.class,
+                                CheckChainResponseMessageContent.class,
                                 checkId),
                         childResults -> {
                             var childrenCheckFailed =
                                     childResults.size() != myReceivers.size() // not all children answered, suppose as failed
                                             || childResults.stream()
-                                            .anyMatch(c -> MessageHelper.parse(c, IsProducerPresentInChainResponseMessageContent.class)
+                                            .anyMatch(c -> MessageHelper.parse(c, CheckChainResponseMessageContent.class)
                                                     .isPresent());
 
                             checkEnded(requesterAid, checkId, nameUnderCheck, childrenCheckFailed);
@@ -285,8 +285,8 @@ public abstract class AgentBase extends Agent {
     private void checkEnded(AID requesterAid, String checkId, String nameUnderCheck, boolean isFailed) {
         var answer = MessageHelper.buildMessage(
                 ACLMessage.INFORM,
-                IsProducerPresentInChainResponseMessageContent.class,
-                new IsProducerPresentInChainResponseMessageContent(isFailed)
+                CheckChainResponseMessageContent.class,
+                new CheckChainResponseMessageContent(isFailed)
         );
         answer.setConversationId(checkId);
         answer.addReceiver(requesterAid);
