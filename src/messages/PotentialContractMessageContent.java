@@ -1,6 +1,8 @@
 package messages;
 
-public class PotentialContractMessageContent {
+import models.interfaces.IShortContactInfo;
+
+public class PotentialContractMessageContent implements IShortContactInfo {
     private String proposeId;
     private String producerId;
     private String consumerId;

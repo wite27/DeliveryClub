@@ -17,6 +17,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.*;
 import models.*;
+import models.interfaces.IShortContactInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,7 +43,7 @@ public class DynamicAgent extends AgentBase {
         addReceiveContract(new DeliveryContract(
                 ContractParty.store(),
                 this.toContractParty(),
-                costToStore.cost,
+                0,
                 costToStore.point,
                 new ArrayList<>()));
 
@@ -163,7 +164,7 @@ public class DynamicAgent extends AgentBase {
         }
 
         receiveContract = contract;
-        Log.fromAgent(this, "got new receive contract: " + this.receiveContract.toShortString());
+        Log.fromAgent(this, "got new receive contract: " + IShortContactInfo.print(this.receiveContract));
 
         // TODO multipoint
         var calc = getCostToPointSimple(contract.getPoint());
@@ -321,16 +322,20 @@ public class DynamicAgent extends AgentBase {
                 content.proposeId, proposerAid.getName(), this.getName(), calc.point, content.cost);
 
         awaitingPotentialContract = potentialContract;
+        Log.fromAgent(this, " got awaiting contract: " + IShortContactInfo.print(potentialContract));
 
         if (produceContracts.size() == 0) {
+            Log.fromAgent(this, " has no produceContract and accepted awaiting contract: "
+                    + IShortContactInfo.print(potentialContract));
             // no need to wait commit from children
             acceptContractImmediately(proposerAid, potentialContract);
             return waitForContractConfirmationWithoutCheck();
         }
 
         var myReceivers = getMyReceivers();
-
         var check = new IsProducerPresentInYourChain(proposerAid.getName());
+
+        var self = this;
         var sequence = new SequentialBehaviour(this);
         sequence.addSubBehaviour(new OneShotBehaviour() {
             @Override
@@ -343,6 +348,8 @@ public class DynamicAgent extends AgentBase {
                 message.setConversationId(check.getCheckId());
                 MessageHelper.addReceivers2(message, myReceivers);
                 send(message);
+                Log.fromAgent(self, "initiated check on " +
+                        check.getProducerId() + ", id: " + check.getCheckId());
             }
         });
         sequence.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this,
@@ -359,8 +366,12 @@ public class DynamicAgent extends AgentBase {
                         .isPresent());
             if (isCheckFailed)
             {
+                Log.fromAgent(self, "check on " + check.getProducerId() + " with id: " + check.getCheckId() +
+                    " failed");
                 cancelAwaitingContract(check.getCheckId(), myReceivers);
             } else {
+                Log.fromAgent(self, "check on " + check.getProducerId() + " with id: " + check.getCheckId() +
+                        " succeced");
                 acceptContractImmediately(proposerAid, awaitingPotentialContract);
 
                 var mt = new MessageTemplate(msg ->
@@ -450,11 +461,15 @@ public class DynamicAgent extends AgentBase {
         var isCycle = receiveContract.isProducerInThisChain(agent);
         var isBlockedByParentsCheck = currentChecks.stream()
                 .anyMatch(x -> x.getProducerId().equals(agent.getName()));
+        var isAwaitingHimAsDeliveryman = awaitingPotentialContract != null
+                && awaitingPotentialContract.getProducerId().equals(agent.getName());
 
         if (isCycle) Log.fromAgent(this, "found cycle with " + agent.getName());
         if (isBlockedByParentsCheck) Log.fromAgent(this, "has block on " + agent.getName());
+        if (isAwaitingHimAsDeliveryman) Log.fromAgent(this, "already awaiting " + agent.getName() +
+                " as deliveryman");
 
-        return (!isCycle && !isBlockedByParentsCheck);
+        return (!isCycle && !isBlockedByParentsCheck && !isAwaitingHimAsDeliveryman);
     }
 
     private CalculateCostResult getProposeDeliveryCalcResult(ACLMessage message) {

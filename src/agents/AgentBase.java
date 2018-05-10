@@ -103,6 +103,8 @@ public abstract class AgentBase extends Agent {
                             aclMessages.stream()
                                     .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
                                     .filter(x -> !isAgentInCheckStatus(x.getSender())) // ignore agents under check
+                                    .filter(x -> produceContracts.stream() // early cycle break
+                                            .noneMatch(c -> c.getConsumer().getId().equals(x.getSender().getName())))
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .filter(x -> getProposeDeliveryCost(x) < currentCost)
                                     .findFirst()
@@ -181,11 +183,13 @@ public abstract class AgentBase extends Agent {
             var checkId = content.getCheckId();
 
             this.currentChecks.add(new CheckEntry(checkId, nameUnderCheck));
+            Log.fromAgent(this, "got check on " + nameUnderCheck + ", id: " + checkId +
+                " from " + x.getSender().getName());
 
             var isCheckFailed = false;
             if (nameUnderCheck.equals(this.getName())) {
                 Log.warn("Agent " + this.getName() + " got check request on himself." +
-                        " Why parent didn't declined it before?");
+                        " Why parent " + x.getSender().getName() + " didn't declined it before?");
                 isCheckFailed = true;
             }
             isCheckFailed = isCheckFailed
@@ -193,79 +197,96 @@ public abstract class AgentBase extends Agent {
                                        .anyMatch(c -> c.getConsumer().getId().equals(nameUnderCheck));
 
             if (isCheckFailed) {
-                checkEnded(requesterAid, checkId, true);
-                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+                checkEnded(requesterAid, checkId, nameUnderCheck,true);
                 return;
             }
 
             if (produceContracts.size() == 0) {
-                checkEnded(requesterAid, checkId, false);
-                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
-                return;
+                checkEnded(requesterAid, checkId, nameUnderCheck, false);
+                Log.fromAgent(this, "succeed check on " + nameUnderCheck + ", id: " + checkId +
+                    ". Waiting parent " + requesterAid.getName() + " to realise lock.");
             }
 
+            var askChildrenAndWaitParent = new SequentialBehaviour(this);
             var myReceivers = getMyReceivers();
 
-            var furtherRequest = MessageHelper.buildMessage2(
-                    ACLMessage.INFORM_IF,
-                    IsProducerPresentInYourChain.class,
-                    new IsProducerPresentInYourChain(checkId, nameUnderCheck));
-            furtherRequest.setConversationId(checkId);
-            MessageHelper.addReceivers2(furtherRequest, myReceivers);
-
-            send(furtherRequest);
-
-            var askChildrenAndWaitParent = new SequentialBehaviour(this);
-
-            askChildrenAndWaitParent.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this, myReceivers.size(), 1000,
-                    MessageTemplateFactory.create(
-                            ACLMessage.INFORM,
-                            IsProducerPresentInChainResponseMessageContent.class,
-                            checkId),
-                    childResults -> {
-                var childrenCheckFailed =
-                        childResults.size() != myReceivers.size() // not all children answered, suppose as failed
-                        || childResults.stream()
-                                .anyMatch(c -> MessageHelper.parse(c, IsProducerPresentInChainResponseMessageContent.class)
-                                .isPresent());
-
-                checkEnded(requesterAid, checkId, childrenCheckFailed);
-            }));
-
-            askChildrenAndWaitParent.addSubBehaviour(new ReceiverWithHandlerBehaviour(this, 1000,
+            var waitResponseIfCheckSucceed = new ReceiverWithHandlerBehaviour(this, 1000,
                     MessageTemplateFactory.create(
                             ACLMessage.INFORM,
                             AwaitingContractDecisionMessageContent.class,
                             checkId),
                     parentResultMessage -> {
-                var parentResult = parentResultMessage != null
-                        ? MessageHelper.parse(parentResultMessage, AwaitingContractDecisionMessageContent.class)
-                        // something went wrong, suppose check as failed
-                        : AwaitingContractDecisionMessageContent.failed(nameUnderCheck);
+                        var parentResult = parentResultMessage != null
+                                ? MessageHelper.parse(parentResultMessage, AwaitingContractDecisionMessageContent.class)
+                                // something went wrong, suppose check as failed
+                                : AwaitingContractDecisionMessageContent.failed(nameUnderCheck);
 
-                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+                        currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+                        Log.fromAgent(this, "realised lock on " + nameUnderCheck + ", id: " + checkId);
 
-                if (!parentResult.isSuccess()) {
-                    var answerToChildren = MessageHelper.buildMessage2(
-                            ACLMessage.INFORM,
-                            AwaitingContractDecisionMessageContent.class,
-                            AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
-                    MessageHelper.addReceivers2(answerToChildren, myReceivers);
-                    send(answerToChildren);
+                        if (!parentResult.isSuccess()) {
+                            var answerToChildren = MessageHelper.buildMessage2(
+                                    ACLMessage.INFORM,
+                                    AwaitingContractDecisionMessageContent.class,
+                                    AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
+                            answerToChildren.setConversationId(checkId);
+                            MessageHelper.addReceivers2(answerToChildren, myReceivers);
+                            send(answerToChildren);
 
-                    return;
-                }
+                            return;
+                        }
 
-                receiveContract = parentResult.getNewContract();
+                        receiveContract = parentResult.getNewContract();
 
-                notifyContractUpdated(checkId, myReceivers);
-            }));
+                        notifyContractUpdated(checkId, myReceivers);
+                    });
+
+            if (myReceivers.size() != 0) {
+                var furtherRequest = MessageHelper.buildMessage2(
+                        ACLMessage.INFORM_IF,
+                        IsProducerPresentInYourChain.class,
+                        new IsProducerPresentInYourChain(checkId, nameUnderCheck));
+                furtherRequest.setConversationId(checkId);
+                MessageHelper.addReceivers2(furtherRequest, myReceivers);
+
+                send(furtherRequest);
+
+                askChildrenAndWaitParent.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this,
+                        myReceivers.size(), 1000,
+                        MessageTemplateFactory.create(
+                                ACLMessage.INFORM,
+                                IsProducerPresentInChainResponseMessageContent.class,
+                                checkId),
+                        childResults -> {
+                            var childrenCheckFailed =
+                                    childResults.size() != myReceivers.size() // not all children answered, suppose as failed
+                                            || childResults.stream()
+                                            .anyMatch(c -> MessageHelper.parse(c, IsProducerPresentInChainResponseMessageContent.class)
+                                                    .isPresent());
+
+                            checkEnded(requesterAid, checkId, nameUnderCheck, childrenCheckFailed);
+                            if (childrenCheckFailed) {
+                                var answerToChildren = MessageHelper.buildMessage2(
+                                        ACLMessage.INFORM,
+                                        AwaitingContractDecisionMessageContent.class,
+                                        AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
+                                MessageHelper.addReceivers2(answerToChildren, myReceivers);
+                                send(answerToChildren);
+
+                                return;
+                            }
+
+                            askChildrenAndWaitParent.addSubBehaviour(waitResponseIfCheckSucceed);
+                        }));
+            } else {
+                askChildrenAndWaitParent.addSubBehaviour(waitResponseIfCheckSucceed);
+            }
 
             this.addBehaviour(askChildrenAndWaitParent);
         }));
     }
 
-    private void checkEnded(AID requesterAid, String checkId, boolean isFailed) {
+    private void checkEnded(AID requesterAid, String checkId, String nameUnderCheck, boolean isFailed) {
         var answer = MessageHelper.buildMessage2(
                 ACLMessage.INFORM,
                 IsProducerPresentInChainResponseMessageContent.class,
@@ -275,6 +296,11 @@ public abstract class AgentBase extends Agent {
         answer.addReceiver(requesterAid);
 
         this.send(answer);
+
+        if (isFailed) {
+            Log.fromAgent(this, "failed check on " + nameUnderCheck + ", id: " + checkId);
+            currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+        }
     }
 
     protected abstract double getCurrentReceiveCost();

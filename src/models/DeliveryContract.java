@@ -3,13 +3,14 @@ package models;
 import com.alibaba.fastjson.annotation.JSONField;
 import helpers.AgentHelper;
 import jade.core.AID;
+import models.interfaces.IShortContactInfo;
 
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class DeliveryContract {
+public class DeliveryContract implements IShortContactInfo {
     public DeliveryContract(
             ContractParty producer,
             ContractParty consumer,
@@ -59,6 +60,16 @@ public class DeliveryContract {
         return cost;
     }
 
+    @Override
+    public String getProducerId() {
+        return producer.getId();
+    }
+
+    @Override
+    public String getConsumerId() {
+        return consumer.getId();
+    }
+
     public String getPoint() {
         return point;
     }
@@ -82,12 +93,6 @@ public class DeliveryContract {
     // TODO maybe use immutable contracts?
     public void updateCost(double cost) {
         this.cost = cost;
-    }
-
-    public String toShortString() {
-        return AgentHelper.getLocalName(producer.getId()) + " -> " +
-               AgentHelper.getLocalName(consumer.getId()) + " in " +
-               point + " for " + cost;
     }
 
     @Override

@@ -18,6 +18,7 @@ import messages.DeliveryProposeMessageContent;
 import messages.MakeContractMessageContent;
 import messages.PotentialContractMessageContent;
 import models.AgentType;
+import models.interfaces.IShortContactInfo;
 
 import java.util.Comparator;
 
@@ -73,7 +74,7 @@ public class StaticAgent extends AgentBase {
                 cancelCurrentReceiveContract();
 
             receiveContract = content.contract;
-            Log.fromAgent(this, "got new receive contract: " + receiveContract.toShortString());
+            Log.fromAgent(this, "got new receive contract: " + IShortContactInfo.print(receiveContract));
         }));
     }
 
