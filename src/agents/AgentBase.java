@@ -20,7 +20,8 @@ import models.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static models.Consts.ContractCancelPenaltyInSec;
+import static environment.GlobalParams.ContractCancelPenaltyInSec;
+
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -104,6 +105,9 @@ public abstract class AgentBase extends Agent {
 
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
                 currentConversationId);
+        if (this.type == AgentType.Static)
+            askForDeliveryInDistrictBehaviour.configurePointForStaticAgent(getHome());
+
         sequentialBehaviour.addSubBehaviour(askForDeliveryInDistrictBehaviour);
 
         var mt = askForDeliveryInDistrictBehaviour.getAnswerMessageTemplate();
@@ -121,12 +125,13 @@ public abstract class AgentBase extends Agent {
                                     ? 0
                                     : getCurrentContractCancelPenalty());
                             aclMessages.stream()
-                                    .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
+                                    .filter(x -> x != null && x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
                                     .filter(x -> !isAgentInCheckStatus(x.getSender())) // ignore agents under check
                                     .filter(x -> produceContracts.stream() // early cycle break
                                             .noneMatch(c -> c.getConsumer().getId().equals(x.getSender().getName())))
                                     .map(x -> new DeliveryProposeParams(getDeliveryProposeStrategy(x), x))
-                                    .filter(x -> x.getStrategy().getCost() < currentCost)
+                                    .filter(x -> x.getStrategy() != null
+                                            && x.getStrategy().getCost() < currentCost)
                                     .min(Comparator.comparingDouble(x -> x.getStrategy().getCost()))
                                     .ifPresent(bestDeal -> {
                                         var reaction = betterReceiveContractFound(bestDeal);

@@ -54,15 +54,23 @@ public class DynamicAgent extends AgentBase {
 
     @Override
     protected double getCurrentReceiveCost() {
-        return getReceiveCostIfAlone() - produceContracts.stream()
-                .map(DeliveryContract::getCost)
-                .reduce((x, y) -> x + y).orElse(0.0);
+        return getReceiveCostIfAlone() / (produceContracts.size() + 1); // me and my receivers
     }
 
     private double getReceiveCostIfAlone() {
         // pay to deliveryman + road cost
         return receiveContract.getCost() +
                 getCostToPointIfRouteWithoutPoint(receiveContract.getPoint(), receiveContract.getPoint()).cost;
+    }
+
+    private double getProposingCost(String point, boolean shouldIDeliver) {
+        var total = 0.0;
+        if (shouldIDeliver)
+            total += getCostToPoint(point).cost;
+
+        total += getReceiveCostIfAlone() / (produceContracts.size() + 2); // me, receivers, and you
+
+        return total;
     }
 
     @Override
@@ -101,7 +109,7 @@ public class DynamicAgent extends AgentBase {
                         null);
             } else {
                 var propose = content != null && content.isNeedDeliveryToPoint()
-                    ? createProposeTo(answerTo, content.getNeededPoint())
+                    ? createProposeTo(answerTo, content.getNeededPoint(), true)
                     : createProposeTo(answerTo);
                 answer = MessageHelper.buildMessage(
                         ACLMessage.PROPOSE,
@@ -123,21 +131,22 @@ public class DynamicAgent extends AgentBase {
                 .map(x -> new DeliveryContract(
                         this.toContractParty(),
                         ContractParty.agent(agent),
-                        getCostToPoint(x).cost,
+                        getProposingCost(x, false),
                         x,
                         receiveContract.makeChain()
                 )).collect(Collectors.toCollection(ArrayList::new)));
     }
 
-    private DeliveryProposeMessageContent createProposeTo(AID agent, String specifiedPoint) {
+    private DeliveryProposeMessageContent createProposeTo(
+            AID agent, String specifiedPoint, boolean isProducerDelivery) {
         var propose = new DeliveryContract(
                 this.toContractParty(),
                 ContractParty.agent(agent),
-                getCostToPoint(specifiedPoint).cost,
+                getProposingCost(specifiedPoint, isProducerDelivery),
                 specifiedPoint,
                 receiveContract.makeChain()
         );
-        propose.isProducerDelivery = true;
+        propose.isProducerDelivery = isProducerDelivery;
 
         return new DeliveryProposeMessageContent(new ArrayList<>(){{
             add(propose);
@@ -153,8 +162,9 @@ public class DynamicAgent extends AgentBase {
             var content = MessageHelper.parse(aclMessage, PotentialContractMessageContent.class);
 
             var costIfMakeContractNow = createProposeTo(
-                    aclMessage.getSender(), content.getContract().getPoint())
-                    .getContracts().get(0).getCost();
+                    aclMessage.getSender(), content.getContract().getPoint(),
+                    content.getContract().isProducerDelivery)
+                        .getContracts().get(0).getCost();
             var isConditionsInForce = costIfMakeContractNow <= content.getContract().getCost();
 
             if (awaitingPotentialContract != null
@@ -179,6 +189,8 @@ public class DynamicAgent extends AgentBase {
                     content.getContract().getCost(),
                     content.getContract().getPoint(),
                     this.receiveContract.makeChain());
+            if (content.getContract().isProducerDelivery)
+                contract.isProducerDelivery = true;
 
             var answer = MessageHelper.buildMessage(
                     ACLMessage.AGREE,
@@ -287,8 +299,8 @@ public class DynamicAgent extends AgentBase {
         if (produceContracts.size() == 0)
             return;
 
-        var newCost = getCurrentReceiveCost();
         produceContracts.forEach(x -> {
+            var newCost = getProposingCost(x.getPoint(), x.isProducerDelivery);
             var message = MessageHelper.buildMessage(
                     ACLMessage.INFORM,
                     UpdateContractCostMessageContent.class,
@@ -326,10 +338,7 @@ public class DynamicAgent extends AgentBase {
         var routeIfChangePoint = changePointCalc.getNewRoute(routeCopy);
 
         var totalCost = (proposeContract.getCost() + changePointCalc.cost)
-                - (contractsNotDependentOnCurrentPoint.stream()
-                .map(x -> Math.min(x.getCost(),
-                        getCostToPointForRoute(routeIfChangePoint, x.getPoint(), null).cost))
-                .reduce((x, y) -> (x + y)).orElse(0.0));
+                / (contractsNotDependentOnCurrentPoint.size() + 1); // they and me
 
         return new DeliveryProposeStrategy(
                 DeliveryProposeStrategyType.ChangePoint,
@@ -352,10 +361,7 @@ public class DynamicAgent extends AgentBase {
         var routeIfBothPoints = calcIfBothPoints.getNewRoute(routeIfChangePoint);
 
         var totalCost = (proposeContract.getCost() + roadCostIfBothPoints)
-                - (produceContracts.stream()
-                .map(x -> Math.min(x.getCost(),
-                        getCostToPointForRoute(routeIfBothPoints, x.getPoint(), null).cost))
-                .reduce((x, y) -> x + y).orElse(0.0));
+                / (produceContracts.size() + 1); // they and me
 
         return new DeliveryProposeStrategy(
                 DeliveryProposeStrategyType.BothPoints,
@@ -536,19 +542,6 @@ public class DynamicAgent extends AgentBase {
                 && !isBlockedByParentsCheck
                 && !isAwaitingHimAsDeliveryman
                 && !isPotentialCycle);
-    }
-
-    private DeliveryContract getProposeDeliveryCalcResult(ACLMessage message) {
-        var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
-        return propose.getContracts().stream()
-                // TODO multipoint
-                .min(Comparator.comparingDouble(x -> x.getCost() + getCostToPointSimple(x.getPoint()).cost))
-                .get();
-    }
-
-    private double calculateCostWhichIPropose()
-    {
-        return getReceiveCostIfAlone() / (produceContracts.size() + 2); // my receivers, me and you
     }
 
     private String getWork() {

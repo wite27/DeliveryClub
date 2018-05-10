@@ -50,10 +50,9 @@ public class StaticAgent extends AgentBase {
     @Override
     protected double getRouteDelta() {
         if (receiveContract == null)
-            return 0.1337;
+            return 0.01337;
 
-        // TODO Static agents has no route delta, it's dynamic's responsibility to deliver to static agent
-        return CityMap.getInstance().getPathWeight(getHome(), receiveContract.getPoint());
+        return 0;
     }
 
     private void startAnswerOnMakeContract(){
@@ -106,7 +105,7 @@ public class StaticAgent extends AgentBase {
     protected DeliveryProposeStrategy getDeliveryProposeStrategy(ACLMessage message) {
         var propose = MessageHelper.parse(message, DeliveryProposeMessageContent.class);
         return propose.getContracts().stream()
-                .filter(x -> !x.getPoint().equals(getHome())) // i'm static :(
+                .filter(x -> x.getPoint().equals(getHome()) && x.isProducerDelivery) // i'm static :(
                 .min(Comparator.comparingDouble(DeliveryContract::getCost))
                 .map(x -> new DeliveryProposeStrategy(
                         x.getCost(),
@@ -126,6 +125,7 @@ public class StaticAgent extends AgentBase {
                 PotentialContractMessageContent.class,
                 potentialContract);
         answer.setConversationId(proposeId);
+        answer.addReceiver(params.getProposeMessage().getSender());
         Log.fromAgent(this, " choosed best deal: " + potentialContract.getContract().toShortString());
         this.send(answer);
 
