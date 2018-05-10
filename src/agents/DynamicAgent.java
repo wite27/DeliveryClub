@@ -96,14 +96,14 @@ public class DynamicAgent extends AgentBase {
             {
                 // found cycle, can't propose anything
                 // or we are blocked by parent check
-                answer = MessageHelper.buildMessage2(
+                answer = MessageHelper.buildMessage(
                         ACLMessage.REFUSE,
                         DeliveryProposeMessageContent.class,
                         null);
             } else {
                 var content = new DeliveryProposeMessageContent(
                         route, calculateCostWhichIPropose(), receiveContract.getPreviousContracts());
-                answer = MessageHelper.buildMessage2(
+                answer = MessageHelper.buildMessage(
                         ACLMessage.PROPOSE,
                         DeliveryProposeMessageContent.class,
                         content
@@ -128,7 +128,7 @@ public class DynamicAgent extends AgentBase {
             if (!isConditionsInForce
                 || !isAvailableToMakeContractWithAgent(aclMessage.getSender()))
             {
-                var answer = MessageHelper.buildMessage2(
+                var answer = MessageHelper.buildMessage(
                         ACLMessage.CANCEL,
                         MakeContractMessageContent.class,
                         null
@@ -146,7 +146,7 @@ public class DynamicAgent extends AgentBase {
                     content.getPoint(),
                     this.receiveContract.makeChain());
 
-            var answer = MessageHelper.buildMessage2(
+            var answer = MessageHelper.buildMessage(
                     ACLMessage.AGREE,
                     MakeContractMessageContent.class,
                     new MakeContractMessageContent(contract));
@@ -196,7 +196,7 @@ public class DynamicAgent extends AgentBase {
 
         Log.fromAgent(this, "canceled receive contract from " + whoDeliversToMe.getId());
 
-        var message = MessageHelper.buildMessage2(
+        var message = MessageHelper.buildMessage(
                 ACLMessage.REFUSE,
                 CancelContractMessageContent.class,
                 new CancelContractMessageContent(receiveContract));
@@ -251,7 +251,7 @@ public class DynamicAgent extends AgentBase {
 
         var newCost = getCurrentReceiveCost();
         produceContracts.forEach(x -> {
-            var message = MessageHelper.buildMessage2(
+            var message = MessageHelper.buildMessage(
                     ACLMessage.INFORM,
                     UpdateContractCostMessageContent.class,
                     new UpdateContractCostMessageContent(x, newCost)
@@ -342,13 +342,13 @@ public class DynamicAgent extends AgentBase {
         sequence.addSubBehaviour(new OneShotBehaviour() {
             @Override
             public void action() {
-                var message = MessageHelper.buildMessage2(
+                var message = MessageHelper.buildMessage(
                         ACLMessage.INFORM_IF,
                         IsProducerPresentInYourChain.class,
                         check
                 );
                 message.setConversationId(check.getCheckId());
-                MessageHelper.addReceivers2(message, myReceivers);
+                MessageHelper.addReceivers(message, myReceivers);
                 send(message);
                 Log.fromAgent(self, "initiated check on " +
                         check.getProducerId() + ", id: " + check.getCheckId());
@@ -407,7 +407,7 @@ public class DynamicAgent extends AgentBase {
     }
 
     private void acceptContractImmediately(AID proposerAid, PotentialContractMessageContent potentialContract) {
-        var answer = MessageHelper.buildMessage2(
+        var answer = MessageHelper.buildMessage(
                 ACLMessage.ACCEPT_PROPOSAL,
                 PotentialContractMessageContent.class,
                 potentialContract);
@@ -447,12 +447,12 @@ public class DynamicAgent extends AgentBase {
             return;
         }
         var content = AwaitingContractDecisionMessageContent.failed(awaitingPotentialContract.getProducerId());
-        var message = MessageHelper.buildMessage2(
+        var message = MessageHelper.buildMessage(
                 ACLMessage.INFORM,
                 AwaitingContractDecisionMessageContent.class,
                 content);
         message.setConversationId(checkId);
-        MessageHelper.addReceivers2(message, receiversToNotifyUnblock);
+        MessageHelper.addReceivers(message, receiversToNotifyUnblock);
 
         this.send(message);
 

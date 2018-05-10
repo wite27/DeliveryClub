@@ -11,13 +11,9 @@ import helpers.YellowPagesHelper;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.*;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
 import messages.*;
 import models.*;
 
@@ -142,7 +138,7 @@ public abstract class AgentBase extends Agent {
         if (statsman == null)
             return;
 
-        var message = MessageHelper.buildMessage2(
+        var message = MessageHelper.buildMessage(
                 ACLMessage.INFORM,
                 DayResultMessageContent.class,
                 new DayResultMessageContent(receiveContract, produceContracts, getRouteDelta(), route));
@@ -225,12 +221,12 @@ public abstract class AgentBase extends Agent {
                         Log.fromAgent(this, "realised lock on " + nameUnderCheck + ", id: " + checkId);
 
                         if (!parentResult.isSuccess()) {
-                            var answerToChildren = MessageHelper.buildMessage2(
+                            var answerToChildren = MessageHelper.buildMessage(
                                     ACLMessage.INFORM,
                                     AwaitingContractDecisionMessageContent.class,
                                     AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
                             answerToChildren.setConversationId(checkId);
-                            MessageHelper.addReceivers2(answerToChildren, myReceivers);
+                            MessageHelper.addReceivers(answerToChildren, myReceivers);
                             send(answerToChildren);
 
                             return;
@@ -242,12 +238,12 @@ public abstract class AgentBase extends Agent {
                     });
 
             if (myReceivers.size() != 0) {
-                var furtherRequest = MessageHelper.buildMessage2(
+                var furtherRequest = MessageHelper.buildMessage(
                         ACLMessage.INFORM_IF,
                         IsProducerPresentInYourChain.class,
                         new IsProducerPresentInYourChain(checkId, nameUnderCheck));
                 furtherRequest.setConversationId(checkId);
-                MessageHelper.addReceivers2(furtherRequest, myReceivers);
+                MessageHelper.addReceivers(furtherRequest, myReceivers);
 
                 send(furtherRequest);
 
@@ -266,11 +262,11 @@ public abstract class AgentBase extends Agent {
 
                             checkEnded(requesterAid, checkId, nameUnderCheck, childrenCheckFailed);
                             if (childrenCheckFailed) {
-                                var answerToChildren = MessageHelper.buildMessage2(
+                                var answerToChildren = MessageHelper.buildMessage(
                                         ACLMessage.INFORM,
                                         AwaitingContractDecisionMessageContent.class,
                                         AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
-                                MessageHelper.addReceivers2(answerToChildren, myReceivers);
+                                MessageHelper.addReceivers(answerToChildren, myReceivers);
                                 send(answerToChildren);
 
                                 return;
@@ -287,7 +283,7 @@ public abstract class AgentBase extends Agent {
     }
 
     private void checkEnded(AID requesterAid, String checkId, String nameUnderCheck, boolean isFailed) {
-        var answer = MessageHelper.buildMessage2(
+        var answer = MessageHelper.buildMessage(
                 ACLMessage.INFORM,
                 IsProducerPresentInChainResponseMessageContent.class,
                 new IsProducerPresentInChainResponseMessageContent(isFailed)
@@ -344,7 +340,7 @@ public abstract class AgentBase extends Agent {
                     oldContract.getPoint(),
                     this.receiveContract.makeChain());
 
-            var message = MessageHelper.buildMessage2(ACLMessage.INFORM,
+            var message = MessageHelper.buildMessage(ACLMessage.INFORM,
                     AwaitingContractDecisionMessageContent.class,
                     new AwaitingContractDecisionMessageContent(checkId, newContract));
             message.setConversationId(checkId);

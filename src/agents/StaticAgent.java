@@ -90,7 +90,7 @@ public class StaticAgent extends AgentBase {
 
         Log.fromAgent(this, "canceled receive contract from " + whoDeliversToMe.getId());
 
-        var message = MessageHelper.buildMessage2(
+        var message = MessageHelper.buildMessage(
                 ACLMessage.REFUSE,
                 CancelContractMessageContent.class,
                 new CancelContractMessageContent(receiveContract));
@@ -113,7 +113,7 @@ public class StaticAgent extends AgentBase {
         var potentialContract = new PotentialContractMessageContent(
                 content.proposeId, message.getSender().getName(), this.getName(), this.getHome(), content.cost,
                 content.previousContracts);
-        var answer = MessageHelper.buildMessage2(
+        var answer = MessageHelper.buildMessage(
                 ACLMessage.ACCEPT_PROPOSAL,
                 PotentialContractMessageContent.class,
                 potentialContract);

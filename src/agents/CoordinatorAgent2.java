@@ -1,7 +1,6 @@
 package agents;
 
 import behaviours.CyclicReceiverWithHandlerBehaviour;
-import behaviours.DailyTimeBehaviour;
 import com.alibaba.fastjson.JSON;
 import environment.CityMap;
 import environment.Store;
