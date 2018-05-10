@@ -1,7 +1,5 @@
 package agents;
 
-import behaviours.AskForDeliveryInDistrictBehaviour;
-import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import environment.CityMap;
 import helpers.Log;
@@ -9,8 +7,6 @@ import helpers.MessageHelper;
 import helpers.StringHelper;
 import jade.core.AID;
 import jade.core.behaviours.Behaviour;
-import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import messages.CancelContractMessageContent;
@@ -19,8 +15,6 @@ import messages.MakeContractMessageContent;
 import messages.PotentialContractMessageContent;
 import models.AgentType;
 import models.interfaces.IShortContactInfo;
-
-import java.util.Comparator;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -117,7 +111,8 @@ public class StaticAgent extends AgentBase {
     @Override
     protected Behaviour betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content) {
         var potentialContract = new PotentialContractMessageContent(
-                content.proposeId, message.getSender().getName(), this.getName(), this.getHome(), content.cost);
+                content.proposeId, message.getSender().getName(), this.getName(), this.getHome(), content.cost,
+                content.previousContracts);
         var answer = MessageHelper.buildMessage2(
                 ACLMessage.ACCEPT_PROPOSAL,
                 PotentialContractMessageContent.class,

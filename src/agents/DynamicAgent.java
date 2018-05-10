@@ -101,7 +101,8 @@ public class DynamicAgent extends AgentBase {
                         DeliveryProposeMessageContent.class,
                         null);
             } else {
-                var content = new DeliveryProposeMessageContent(route, calculateCostWhichIPropose());
+                var content = new DeliveryProposeMessageContent(
+                        route, calculateCostWhichIPropose(), receiveContract.getPreviousContracts());
                 answer = MessageHelper.buildMessage2(
                         ACLMessage.PROPOSE,
                         DeliveryProposeMessageContent.class,
@@ -319,7 +320,8 @@ public class DynamicAgent extends AgentBase {
 
         var calc = getProposeDeliveryCalcResult(message); // get best point from propose
         var potentialContract = new PotentialContractMessageContent(
-                content.proposeId, proposerAid.getName(), this.getName(), calc.point, content.cost);
+                content.proposeId, proposerAid.getName(), this.getName(), calc.point, content.cost,
+                content.previousContracts);
 
         awaitingPotentialContract = potentialContract;
         Log.fromAgent(this, " got awaiting contract: " + IShortContactInfo.print(potentialContract));
@@ -463,13 +465,20 @@ public class DynamicAgent extends AgentBase {
                 .anyMatch(x -> x.getProducerId().equals(agent.getName()));
         var isAwaitingHimAsDeliveryman = awaitingPotentialContract != null
                 && awaitingPotentialContract.getProducerId().equals(agent.getName());
+        var isPotentialCycle = awaitingPotentialContract != null
+            && awaitingPotentialContract.isProducerInThisChain(agent);
 
         if (isCycle) Log.fromAgent(this, "found cycle with " + agent.getName());
         if (isBlockedByParentsCheck) Log.fromAgent(this, "has block on " + agent.getName());
         if (isAwaitingHimAsDeliveryman) Log.fromAgent(this, "already awaiting " + agent.getName() +
                 " as deliveryman");
+        if (isPotentialCycle) Log.fromAgent(this, "potential cycle with " + agent.getName() +
+                " because awaiting " + awaitingPotentialContract.getProducerId());
 
-        return (!isCycle && !isBlockedByParentsCheck && !isAwaitingHimAsDeliveryman);
+        return (!isCycle
+                && !isBlockedByParentsCheck
+                && !isAwaitingHimAsDeliveryman
+                && !isPotentialCycle);
     }
 
     private CalculateCostResult getProposeDeliveryCalcResult(ACLMessage message) {
