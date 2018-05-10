@@ -83,10 +83,9 @@ public class DynamicAgent extends AgentBase {
     }
 
     private void startListenHowMuchCostDeliveryToDistrict() {
-        var mt = new MessageTemplate(msg ->
-            msg.getPerformative() == ACLMessage.CFP
-            && StringHelper.safeEquals(msg.getContent(), Consts.HowMuchCostDeliveryToDistrict)
-        );
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.CFP,
+                CallForDeliveryProposeMessageContent.class);
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var answerTo = aclMessage.getSender();
 

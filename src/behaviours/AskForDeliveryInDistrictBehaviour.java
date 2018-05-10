@@ -2,15 +2,18 @@ package behaviours;
 
 import agents.AgentBase;
 import helpers.AgentHelper;
+import helpers.MessageHelper;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import messages.CallForDeliveryProposeMessageContent;
 import messages.DeliveryProposeMessageContent;
 import models.AgentType;
 import models.Consts;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private AgentBase agent;
@@ -33,12 +36,18 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
                         agent.getDistrict(),
                         false);
 
-        var msg = new ACLMessage(ACLMessage.CFP);
-        msg.setContent(Consts.HowMuchCostDeliveryToDistrict);
+        var msg = MessageHelper.buildMessage(
+                ACLMessage.CFP,
+                CallForDeliveryProposeMessageContent.class,
+                null);
+
         msg.setConversationId(conversationId);
-        for (var potentialCourier: dynamicAgentsInThisDistrict) {
-                msg.addReceiver(potentialCourier.getName());
-        }
+        MessageHelper.addReceivers(
+                msg,
+                dynamicAgentsInThisDistrict.stream()
+                        .map(DFAgentDescription::getName)
+                        .collect(Collectors.toList()));
+
         agent.send(msg);
     }
 
