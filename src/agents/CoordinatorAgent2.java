@@ -3,15 +3,19 @@ package agents;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
 import com.alibaba.fastjson.JSON;
 import environment.CityMap;
+import environment.GlobalParams;
 import environment.Store;
 import helpers.*;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.JADEAgentManagement.KillAgent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.wrapper.StaleProxyException;
 import messages.DayResultMessageContent;
+import messages.KillMessageContent;
 import models.*;
 import org.apache.commons.io.FileUtils;
 
@@ -20,12 +24,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Created by K750JB on 24.03.2018.
  */
 public class CoordinatorAgent2 extends Agent {
     private HashMap<String, DayResultMessageContent> agentsResults = new HashMap<>();
+    private double lastDelta = Double.MAX_VALUE;
+    private int uselessIterationsCount = 0;
 
     @Override
     protected void setup() {
@@ -102,6 +109,27 @@ public class CoordinatorAgent2 extends Agent {
                             ". Delta: " + content.getRouteDelta() +
                             ". Route: " + printRoute(content.getRoute()));
                 });
+
+
+                if (Math.abs(dailyRouteDelta - lastDelta) < 1e-05)
+                {
+                    uselessIterationsCount++;
+                }
+                lastDelta = dailyRouteDelta;
+
+                if (uselessIterationsCount >= GlobalParams.MaxUselessIterations)
+                {
+                    var killMessage = MessageHelper.buildMessage(
+                            ACLMessage.REQUEST, KillMessageContent.class, null);
+                    MessageHelper.addReceivers(killMessage, agentsResults.keySet().stream()
+                            .map(x -> new AID(x, true))
+                            .collect(Collectors.toList()));
+                    send(killMessage);
+
+                    Log.write("[BUS] End! Result: " + dailyRouteDelta);
+
+                    doDelete(); // bye!
+                }
             }
         });
     }

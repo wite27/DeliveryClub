@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static environment.GlobalParams.ContractCancelPenaltyInSec;
+import static environment.GlobalParams.MaxUselessIterations;
 
 
 /**
@@ -49,6 +50,10 @@ public abstract class AgentBase extends Agent {
         return getCurrentSeconds() * ContractCancelPenaltyInSec;
     }
 
+    private int iterationsWithoutChanges = 0;
+    private double lastIterationCost = Double.MAX_VALUE;
+    private boolean isFinished = false;
+
     @Override
     protected void setup() {
         super.setup();
@@ -60,6 +65,15 @@ public abstract class AgentBase extends Agent {
         StartListenCheckRequests();
 
         startPeriodicallySendStats();
+        startListenKillMessage();
+    }
+
+    private void startListenKillMessage() {
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this,
+                MessageTemplateFactory.create(ACLMessage.REQUEST, KillMessageContent.class),
+                x -> {
+                    doDelete(); // :'(
+                }));
     }
 
     private void startPeriodicallySendStats() {
@@ -101,6 +115,10 @@ public abstract class AgentBase extends Agent {
     }
 
     private void startAskingForDelivery() {
+        if (isFinished) {
+            addBehaviour(newIteration());
+            return;
+        }
         var sequentialBehaviour = new SequentialBehaviour();
 
         var askForDeliveryInDistrictBehaviour = new AskForDeliveryInDistrictBehaviour(this,
@@ -140,15 +158,7 @@ public abstract class AgentBase extends Agent {
                                             sequentialBehaviour.addSubBehaviour(reaction);
                                     });
 
-                            sequentialBehaviour.addSubBehaviour(new WakerBehaviour(self, 1000) {
-                                @Override
-                                protected void onWake() {
-                                    super.onWake();
-                                    onIterationEnd();
-
-                                    self.startAskingForDelivery(); // recursive
-                                }
-                            });
+                            sequentialBehaviour.addSubBehaviour(newIteration());
                         }));
             }
         });
@@ -156,9 +166,48 @@ public abstract class AgentBase extends Agent {
         addBehaviour(sequentialBehaviour);
     }
 
+    private WakerBehaviour newIteration() {
+        var self = this;
+        return new WakerBehaviour(self, 1000) {
+            @Override
+            protected void onWake() {
+                super.onWake();
+                onIterationEnd();
+
+                self.startAskingForDelivery(); // recursive
+            }
+        };
+    }
+
     private void onIterationEnd() {
         sendStats();
+
+        updateUselessIterationsCount();
+
         currentConversationId = UUID.randomUUID().toString(); // change propose id
+    }
+
+    private void updateUselessIterationsCount() {
+        /*var currentResult = getCurrentReceiveCost();
+        if (Math.abs(currentResult - lastIterationCost) < 1e-05) {
+            iterationsWithoutChanges++;
+        } else {
+            isFinished = false;
+            iterationsWithoutChanges = 0;
+        }
+        lastIterationCost = currentResult;
+
+        if (iterationsWithoutChanges >= MaxUselessIterations) {
+            isFinished = true;
+            notifyFinished();
+        }*/
+    }
+
+    private void notifyFinished() {
+        var statsman = YellowPagesHelper.findStatsman(this);
+        if (statsman == null)
+            return;
+        // TODO ...
     }
 
     private void sendStats() {

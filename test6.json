@@ -1,0 +1,640 @@
+{
+  "Agents": [
+    {
+      "Name": "Alpha",
+      "NeededProductsCount": 1,
+      "Route": [
+        "b",
+        "U",
+        "c"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Beta",
+      "NeededProductsCount": 1,
+      "Route": [
+        "d",
+        "e",
+        "f"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Gamma",
+      "NeededProductsCount": 1,
+      "Route": [
+        "Z",
+        "T",
+        "F"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Delta",
+      "NeededProductsCount": 1,
+      "Route": [
+        "G",
+        "B",
+        "H"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Epsilon",
+      "NeededProductsCount": 1,
+      "Route": [
+        "Y",
+        "i",
+        "X"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Zeta",
+      "NeededProductsCount": 1,
+      "Route": [
+        "E",
+        "C",
+        "D"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Eta",
+      "NeededProductsCount": 1,
+      "Route": [
+        "L",
+        "K",
+        "J"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Theta",
+      "NeededProductsCount": 1,
+      "Route": [
+        "g",
+        "h",
+        "t"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Yota",
+      "NeededProductsCount": 1,
+      "Route": [
+        "Q",
+        "k",
+        "P"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "Kappa",
+      "NeededProductsCount": 1,
+      "Route": [
+        "m",
+        "n",
+        "p"
+      ],
+      "StartMoney": 100,
+      "Type": "Dynamic"
+    },
+    {
+      "Name": "aa",
+      "NeededProductsCount": 1,
+      "Route": [
+        "a"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "cc",
+      "NeededProductsCount": 1,
+      "Route": [
+        "c"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "II",
+      "NeededProductsCount": 1,
+      "Route": [
+        "I"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "uu",
+      "NeededProductsCount": 1,
+      "Route": [
+        "u"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "gg",
+      "NeededProductsCount": 1,
+      "Route": [
+        "g"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "OO",
+      "NeededProductsCount": 1,
+      "Route": [
+        "O"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "rr",
+      "NeededProductsCount": 1,
+      "Route": [
+        "r"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "ll",
+      "NeededProductsCount": 1,
+      "Route": [
+        "l"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "MM",
+      "NeededProductsCount": 1,
+      "Route": [
+        "M"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    },
+    {
+      "Name": "RRR",
+      "NeededProductsCount": 1,
+      "Route": [
+        "R"
+      ],
+      "StartMoney": 100,
+      "Type": "Static"
+    }
+  ],
+  "Store": {
+    "Name": "S",
+    "ProductsCount": 20
+  },
+  "Vertices": [
+    {
+      "AdjacentVertices": [
+        "S",
+        "B",
+        "J",
+        "K",
+        "L"
+      ],
+      "Name": "A"
+    },
+    {
+      "AdjacentVertices": [
+        "C",
+        "G",
+        "H",
+        "A"
+      ],
+      "Name": "B"
+    },
+    {
+      "AdjacentVertices": [
+        "B",
+        "S",
+        "D",
+        "E",
+        "F"
+      ],
+      "Name": "C"
+    },
+    {
+      "AdjacentVertices": [
+        "C",
+        "S",
+        "L",
+        "M"
+      ],
+      "Name": "D"
+    },
+    {
+      "AdjacentVertices": [
+        "C",
+        "F",
+        "M",
+        "R"
+      ],
+      "Name": "E"
+    },
+    {
+      "AdjacentVertices": [
+        "C",
+        "G",
+        "E",
+        "T",
+        "U"
+      ],
+      "Name": "F"
+    },
+    {
+      "AdjacentVertices": [
+        "H",
+        "B",
+        "F",
+        "d"
+      ],
+      "Name": "G"
+    },
+    {
+      "AdjacentVertices": [
+        "B",
+        "G",
+        "I"
+      ],
+      "Name": "H"
+    },
+    {
+      "AdjacentVertices": [
+        "H",
+        "d",
+        "e",
+        "V",
+        "W",
+        "J"
+      ],
+      "Name": "I"
+    },
+    {
+      "AdjacentVertices": [
+        "I",
+        "A",
+        "K"
+      ],
+      "Name": "J"
+    },
+    {
+      "AdjacentVertices": [
+        "A",
+        "J",
+        "L",
+        "O",
+        "g"
+      ],
+      "Name": "K"
+    },
+    {
+      "AdjacentVertices": [
+        "A",
+        "D",
+        "K",
+        "N"
+      ],
+      "Name": "L"
+    },
+    {
+      "AdjacentVertices": [
+        "D",
+        "E",
+        "Q",
+        "L",
+        "N"
+      ],
+      "Name": "M"
+    },
+    {
+      "AdjacentVertices": [
+        "L",
+        "O",
+        "M",
+        "P",
+        "K"
+      ],
+      "Name": "N"
+    },
+    {
+      "AdjacentVertices": [
+        "K",
+        "N",
+        "n",
+        "h"
+      ],
+      "Name": "O"
+    },
+    {
+      "AdjacentVertices": [
+        "N",
+        "Q",
+        "k",
+        "l",
+        "n" 
+      ],
+      "Name": "P"
+    },
+    {
+      "AdjacentVertices": [
+        "M",
+        "R",
+        "X",
+        "i",
+        "j",
+        "k",
+        "P"
+      ],
+      "Name": "Q"
+    },
+    {
+      "AdjacentVertices": [
+        "E",
+        "T",
+        "Q"
+      ],
+      "Name": "R"
+    },
+    {
+      "AdjacentVertices": [
+        "A",
+        "C",
+        "D"
+      ],
+      "Name": "S"
+    },
+    {
+      "AdjacentVertices": [
+        "F",
+        "U",
+        "a",
+        "Z",
+        "X",
+        "R"
+      ],
+      "Name": "T"
+    },
+    {
+      "AdjacentVertices": [
+        "d",
+        "c",
+        "b",
+        "a",
+        "T",
+        "F"
+      ],
+      "Name": "U"
+    },
+    {
+      "AdjacentVertices": [
+        "e",
+        "I",
+        "W",
+        "u"
+      ],
+      "Name": "V"
+    },
+    {
+      "AdjacentVertices": [
+        "V",
+        "I",
+        "g"
+      ],
+      "Name": "W"
+    },
+    {
+      "AdjacentVertices": [
+        "T",
+        "Y",
+        "i",
+        "Q"
+      ],
+      "Name": "X"
+    },
+    {
+      "AdjacentVertices": [
+        "X",
+        "Z",
+        "i"
+      ],
+      "Name": "Y"
+    },
+    {
+      "AdjacentVertices": [
+        "T",
+        "a",
+        "Y"
+      ],
+      "Name": "Z"
+    },
+    {
+      "AdjacentVertices": [
+        "U",
+        "b",
+        "Z",
+        "T"
+      ],
+      "Name": "a"
+    },
+    {
+      "AdjacentVertices": [
+        "c",
+        "a",
+        "U"
+      ],
+      "Name": "b"
+    },
+    {
+      "AdjacentVertices": [
+        "d",
+        "b",
+        "U"
+      ],
+      "Name": "c"
+    },
+    {
+      "AdjacentVertices": [
+        "e",
+        "c",
+        "U",
+        "G",
+        "I"
+      ],
+      "Name": "d"
+    },
+    {
+      "AdjacentVertices": [
+        "f",
+        "d",
+        "I",
+        "V"
+      ],
+      "Name": "e"
+    },
+    {
+      "AdjacentVertices": [
+        "v",
+        "e"
+      ],
+      "Name": "f"
+    },
+    {
+      "AdjacentVertices": [
+        "u",
+        "W",
+        "K",
+        "h"
+      ],
+      "Name": "g"
+    },
+    {
+      "AdjacentVertices": [
+        "g",
+        "O",
+        "q",
+        "t"
+      ],
+      "Name": "h"
+    },
+    {
+      "AdjacentVertices": [
+        "X",
+        "Y",
+        "Q",
+        "j"
+      ],
+      "Name": "i"
+    },
+    {
+      "AdjacentVertices": [
+        "Q",
+        "i",
+        "k"
+      ],
+      "Name": "j"
+    },
+    {
+      "AdjacentVertices": [
+        "P",
+        "Q",
+        "j",
+        "l"
+      ],
+      "Name": "k"
+    },
+    {
+      "AdjacentVertices": [
+        "P",
+        "k",
+        "m"
+      ],
+      "Name": "l"
+    },
+    {
+      "AdjacentVertices": [
+        "l",
+        "n",
+        "o"
+      ],
+      "Name": "m"
+    },
+    {
+      "AdjacentVertices": [
+        "O",
+        "P",
+        "m",
+        "o",
+        "p"
+      ],
+      "Name": "n"
+    },
+    {
+      "AdjacentVertices": [
+        "n",
+        "m",
+        "p"
+      ],
+      "Name": "o"
+    },
+    {
+      "AdjacentVertices": [
+        "q",
+        "n",
+        "o",
+        "r"
+      ],
+      "Name": "p"
+    },
+    {
+      "AdjacentVertices": [
+        "h",
+        "O",
+        "p",
+        "r"
+      ],
+      "Name": "q"
+    },
+    {
+      "AdjacentVertices": [
+        "s",
+        "q",
+        "p"
+      ],
+      "Name": "r"
+    },
+    {
+      "AdjacentVertices": [
+        "t",
+        "r"
+      ],
+      "Name": "s"
+    },
+    {
+      "AdjacentVertices": [
+        "u",
+        "h",
+        "s"
+      ],
+      "Name": "t"
+  	},
+    {
+      "AdjacentVertices": [
+        "V",
+        "g",
+        "t",
+        "v"
+      ],
+      "Name": "u"
+    },
+    {
+      "AdjacentVertices": [
+        "f",
+        "u"
+      ],
+      "Name": "v"
+    }
+    
+  ]
+}
