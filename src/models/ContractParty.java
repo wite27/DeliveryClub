@@ -31,6 +31,13 @@ public class ContractParty {
         return new ContractParty("store", true);
     }
 
+    public AID getAID(){
+        if (isStore)
+            return null;
+
+        return new AID(id, true);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

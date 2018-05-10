@@ -3,15 +3,14 @@ package agents;
 import behaviours.AskForDeliveryInDistrictBehaviour;
 import behaviours.BatchReceiverWithHandlerBehaviour;
 import behaviours.CyclicReceiverWithHandlerBehaviour;
+import behaviours.ReceiverWithHandlerBehaviour;
+import factories.MessageTemplateFactory;
 import helpers.Log;
 import helpers.MessageHelper;
 import helpers.YellowPagesHelper;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
-import jade.core.behaviours.TickerBehaviour;
-import jade.core.behaviours.WakerBehaviour;
+import jade.core.behaviours.*;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
@@ -19,12 +18,11 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import messages.DayResultMessageContent;
-import messages.DeliveryProposeMessageContent;
-import messages.PotentialContractMessageContent;
+import messages.*;
 import models.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -42,6 +40,8 @@ public abstract class AgentBase extends Agent {
     protected HashSet<DeliveryContract> produceContracts = new HashSet<DeliveryContract>();
     protected DeliveryContract receiveContract;
 
+    protected HashSet<CheckEntry> currentChecks = new HashSet<>();
+
     @Override
     protected void setup() {
         super.setup();
@@ -49,6 +49,8 @@ public abstract class AgentBase extends Agent {
         init();
 
         startAskingForDelivery();
+        startListenUpdateContractCostMessages();
+        StartListenCheckRequests();
     }
 
     private void init() {
@@ -100,14 +102,17 @@ public abstract class AgentBase extends Agent {
                             var currentCost = getCurrentReceiveCost();
                             aclMessages.stream()
                                     .filter(x -> x.getPerformative() != ACLMessage.REFUSE) // ignore refuses
+                                    .filter(x -> !isAgentInCheckStatus(x.getSender())) // ignore agents under check
                                     .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
                                     .filter(x -> getProposeDeliveryCost(x) < currentCost)
                                     .findFirst()
                                     .ifPresent(bestDeal -> {
-                                        betterReceiveContractFound(bestDeal,
+                                        var reaction = betterReceiveContractFound(bestDeal,
                                                 MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class));
-                                    });
 
+                                        if (reaction != null)
+                                            sequentialBehaviour.addSubBehaviour(reaction);
+                                    });
 
                             sequentialBehaviour.addSubBehaviour(new WakerBehaviour(self, 1000) {
                                 @Override
@@ -138,17 +143,189 @@ public abstract class AgentBase extends Agent {
         var message = MessageHelper.buildMessage2(
                 ACLMessage.INFORM,
                 DayResultMessageContent.class,
-                new DayResultMessageContent(receiveContract, produceContracts, getRouteDelta()));
+                new DayResultMessageContent(receiveContract, produceContracts, getRouteDelta(), route));
         message.addReceiver(statsman.getName());
         send(message);
     }
 
+    private void startListenUpdateContractCostMessages(){
+        var mt = MessageTemplateFactory.create(ACLMessage.INFORM, UpdateContractCostMessageContent.class);
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, x -> {
+            var content = MessageHelper.parse(x, UpdateContractCostMessageContent.class);
+            if (!receiveContract.equals(content.getContract())) {
+                /*Log.warn("Agent " + this.getName() + " got update contract message for unknown contract! " +
+                         " From " + x.getSender().getName());*/
+                // ok, possibly we canceled contract but previous owner didn't receive message yet
+                return;
+            }
+            receiveContract.updateCost(content.getNewCost());
+
+            receiveContractCostUpdated(x, content);
+        }));
+    }
+
+    private boolean isAgentInCheckStatus(AID agent) {
+        return currentChecks.stream().anyMatch(x -> x.getProducerId().equals(agent.getName()));
+    }
+
+    private void StartListenCheckRequests() {
+        var mt = MessageTemplateFactory.create(
+                ACLMessage.INFORM_IF,
+                IsProducerPresentInYourChain.class);
+
+        addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, x -> {
+            var content = MessageHelper.parse(x, IsProducerPresentInYourChain.class);
+            var requesterAid = x.getSender();
+            var nameUnderCheck = content.getProducerId();
+            var checkId = content.getCheckId();
+
+            this.currentChecks.add(new CheckEntry(checkId, nameUnderCheck));
+
+            var isCheckFailed = false;
+            if (nameUnderCheck.equals(this.getName())) {
+                Log.warn("Agent " + this.getName() + " got check request on himself." +
+                        " Why parent didn't declined it before?");
+                isCheckFailed = true;
+            }
+            isCheckFailed = isCheckFailed
+                    || produceContracts.stream()
+                                       .anyMatch(c -> c.getConsumer().getId().equals(nameUnderCheck));
+
+            if (isCheckFailed) {
+                checkEnded(requesterAid, checkId, true);
+                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+                return;
+            }
+
+            if (produceContracts.size() == 0) {
+                checkEnded(requesterAid, checkId, false);
+                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+                return;
+            }
+
+            var myReceivers = getMyReceivers();
+
+            var furtherRequest = MessageHelper.buildMessage2(
+                    ACLMessage.INFORM_IF,
+                    IsProducerPresentInYourChain.class,
+                    new IsProducerPresentInYourChain(checkId, nameUnderCheck));
+            furtherRequest.setConversationId(checkId);
+            MessageHelper.addReceivers2(furtherRequest, myReceivers);
+
+            send(furtherRequest);
+
+            var askChildrenAndWaitParent = new SequentialBehaviour(this);
+
+            askChildrenAndWaitParent.addSubBehaviour(new BatchReceiverWithHandlerBehaviour(this, myReceivers.size(), 1000,
+                    MessageTemplateFactory.create(
+                            ACLMessage.INFORM,
+                            IsProducerPresentInChainResponseMessageContent.class,
+                            checkId),
+                    childResults -> {
+                var childrenCheckFailed =
+                        childResults.size() != myReceivers.size() // not all children answered, suppose as failed
+                        || childResults.stream()
+                                .anyMatch(c -> MessageHelper.parse(c, IsProducerPresentInChainResponseMessageContent.class)
+                                .isPresent());
+
+                checkEnded(requesterAid, checkId, childrenCheckFailed);
+            }));
+
+            askChildrenAndWaitParent.addSubBehaviour(new ReceiverWithHandlerBehaviour(this, 1000,
+                    MessageTemplateFactory.create(
+                            ACLMessage.INFORM,
+                            AwaitingContractDecisionMessageContent.class,
+                            checkId),
+                    parentResultMessage -> {
+                var parentResult = parentResultMessage != null
+                        ? MessageHelper.parse(parentResultMessage, AwaitingContractDecisionMessageContent.class)
+                        // something went wrong, suppose check as failed
+                        : AwaitingContractDecisionMessageContent.failed(nameUnderCheck);
+
+                currentChecks.remove(new CheckEntry(checkId, nameUnderCheck));
+
+                if (!parentResult.isSuccess()) {
+                    var answerToChildren = MessageHelper.buildMessage2(
+                            ACLMessage.INFORM,
+                            AwaitingContractDecisionMessageContent.class,
+                            AwaitingContractDecisionMessageContent.failed(nameUnderCheck));
+                    MessageHelper.addReceivers2(answerToChildren, myReceivers);
+                    send(answerToChildren);
+
+                    return;
+                }
+
+                receiveContract = parentResult.getNewContract();
+
+                notifyContractUpdated(checkId, myReceivers);
+            }));
+
+            this.addBehaviour(askChildrenAndWaitParent);
+        }));
+    }
+
+    private void checkEnded(AID requesterAid, String checkId, boolean isFailed) {
+        var answer = MessageHelper.buildMessage2(
+                ACLMessage.INFORM,
+                IsProducerPresentInChainResponseMessageContent.class,
+                new IsProducerPresentInChainResponseMessageContent(isFailed)
+        );
+        answer.setConversationId(checkId);
+        answer.addReceiver(requesterAid);
+
+        this.send(answer);
+    }
+
     protected abstract double getCurrentReceiveCost();
     protected abstract double getProposeDeliveryCost(ACLMessage message);
-    protected abstract void betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content);
+    protected abstract Behaviour betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content);
+    protected void receiveContractCostUpdated(ACLMessage message, UpdateContractCostMessageContent content) {};
 
     protected ContractParty toContractParty() {
         return ContractParty.agent(this.getAID());
+    }
+
+    protected List<AID> getMyReceivers() {
+        return produceContracts.stream()
+                .map(x -> x.getConsumer().getAID()).collect(Collectors.toList());
+    }
+
+    protected void notifyContractUpdated(String checkId, List<AID> receiversToNotifyUnblock) {
+        receiversToNotifyUnblock.forEach(x -> {
+            var oldContract = produceContracts.stream()
+                    .filter(y -> y.getConsumer().getId().equals(x.getName()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (oldContract == null) {
+                Log.warn("Agent " + x.getName() + " was blocked because of new contract," +
+                        "but now he is not consumer of " + this.getName());
+                return;
+            }
+
+            var newCost = getCurrentReceiveCost();
+            if (newCost > oldContract.getCost())
+            {
+                Log.warn("UpdateContract: new cost is higher than old: " +
+                        newCost + ", was: " + oldContract.getCost());
+            }
+
+            var newContract = new DeliveryContract(
+                    this.toContractParty(),
+                    ContractParty.agent(x),
+                    newCost,
+                    oldContract.getPoint(),
+                    this.receiveContract.makeChain());
+
+            var message = MessageHelper.buildMessage2(ACLMessage.INFORM,
+                    AwaitingContractDecisionMessageContent.class,
+                    new AwaitingContractDecisionMessageContent(checkId, newContract));
+            message.setConversationId(checkId);
+            message.addReceiver(x);
+
+            this.send(message);
+        });
     }
 
     protected abstract double getRouteDelta();

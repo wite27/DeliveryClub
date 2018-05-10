@@ -28,7 +28,7 @@ public class BatchReceiverWithHandlerBehaviour extends SequentialBehaviour {
                 {
                     try {
                         var message = receiver.getMessage();
-                        Log.messageReceived(agent, message);
+                        //Log.messageReceived(agent, message);
                         readyMessages.add(message);
                     } catch (ReceiverBehaviour.TimedOut | ReceiverBehaviour.NotYetReady timedOut) {
                         //timedOut.printStackTrace();// - Log below

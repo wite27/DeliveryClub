@@ -5,10 +5,7 @@ import behaviours.DailyTimeBehaviour;
 import com.alibaba.fastjson.JSON;
 import environment.CityMap;
 import environment.Store;
-import helpers.Log;
-import helpers.MessageHelper;
-import helpers.StringHelper;
-import helpers.YellowPagesHelper;
+import helpers.*;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
@@ -102,20 +99,21 @@ public class CoordinatorAgent2 extends Agent {
                                 .orElse("");
                     }
 
-                    Log.write("[BUS]" + x.getKey() + "'s chain is: " + deliveryChain);
+                    Log.write("[BUS]" + x.getKey() + "'s chain is: " + deliveryChain +
+                            ". Delta: " + content.getRouteDelta() +
+                            ". Route: " + printRoute(content.getRoute()));
                 });
             }
         });
     }
 
+    private String printRoute(ArrayList<String> route) {
+        return route.stream().reduce((s1, s2) -> s1+"-"+s2).orElse(null);
+    }
+
     private String getChainElement(ContractParty party, String point)
     {
-        var producer = party.getId();
-        if (producer.contains("@")) // AID
-        {
-            producer = producer.substring(0, producer.indexOf("@"));
-        }
-
+        var producer = AgentHelper.getLocalName(party.getId());
         return "(" + producer + "," + point + ")";
     }
 

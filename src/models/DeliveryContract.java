@@ -1,6 +1,7 @@
 package models;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import helpers.AgentHelper;
 import jade.core.AID;
 
 import java.util.ArrayList;
@@ -76,6 +77,17 @@ public class DeliveryContract {
                 || previousContracts.stream()
                 .map(DeliveryContractHistoryItem::getProducer)
                 .anyMatch(x -> x.getId().equals(agent.getName()));
+    }
+
+    // TODO maybe use immutable contracts?
+    public void updateCost(double cost) {
+        this.cost = cost;
+    }
+
+    public String toShortString() {
+        return AgentHelper.getLocalName(producer.getId()) + " -> " +
+               AgentHelper.getLocalName(consumer.getId()) + " in " +
+               point + " for " + cost;
     }
 
     @Override

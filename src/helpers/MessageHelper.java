@@ -5,6 +5,7 @@ import com.alibaba.fastjson.parser.Feature;
 import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.gson.Gson;
+import jade.core.AID;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import messages.DeliveryProposeMessageContent;
@@ -43,9 +44,15 @@ public class MessageHelper {
         return message.getContent().split(delimiter);
     }
 
-    public static ACLMessage addReceivers(ACLMessage message, ArrayList<DFAgentDescription> receivers)
+    public static ACLMessage addReceivers(ACLMessage message, Iterable<DFAgentDescription> receivers)
     {
         receivers.forEach(x -> message.addReceiver(x.getName()));
+        return message;
+    }
+
+    public static ACLMessage addReceivers2(ACLMessage message, Iterable<AID> receivers)
+    {
+        receivers.forEach(message::addReceiver);
         return message;
     }
 

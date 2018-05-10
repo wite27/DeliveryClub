@@ -28,7 +28,7 @@ public class CyclicReceiverWithHandlerBehaviour extends CyclicBehaviour {
             return;
         }
 
-        Log.messageReceived(myAgent, message);
+        //Log.messageReceived(myAgent, message);
         handlerFn.accept(message);
     }
 }

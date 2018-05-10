@@ -98,4 +98,13 @@ public class AgentHelper {
                 .filter(x -> !x.getName().equals(agentToExclude.getAID()))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
+
+    public static String getLocalName(String name) {
+        if (name.contains("@")) // AID
+        {
+            name = name.substring(0, name.indexOf("@"));
+        }
+
+        return name;
+    }
 }
