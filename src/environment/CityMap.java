@@ -6,6 +6,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleWeightedGraph;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -48,4 +49,24 @@ public class CityMap {
     {
         return shortestPaths.getPathWeight(source, to);
     }
+
+    public List<String> getShortestPath(String source, String to) {
+        return shortestPaths.getPath(source, to).getVertexList();
+    }
+
+    public List<String> getShortestPath(List<String> requiredVertexes) {
+        if (requiredVertexes.size() == 0)
+            return new ArrayList<>();
+        if (requiredVertexes.size() == 1)
+            return new ArrayList<>(requiredVertexes);
+
+        var shortestPath = new ArrayList<String>();
+        for (int i = 0; i < requiredVertexes.size() - 1; i++){
+            var path = getShortestPath(requiredVertexes.get(i), requiredVertexes.get(i + 1));
+            shortestPath.addAll(path.subList(0, path.size() - 1));
+        }
+        shortestPath.add(requiredVertexes.get(requiredVertexes.size() - 1));
+        return shortestPath;
+    }
+
 }

@@ -1,5 +1,7 @@
 package models;
 
+import java.util.ArrayList;
+
 public class CalculateCostResult {
     public String point;
     public String previousPoint;
@@ -16,5 +18,13 @@ public class CalculateCostResult {
         this.cost = cost;
         this.previousPoint = previousPoint;
         this.nextPoint = nextPoint;
+    }
+
+    public ArrayList<String> getNewRoute(ArrayList<String> currentRoute) {
+        var newRoute = new ArrayList<>(currentRoute);
+        var indexBetweenPoints = newRoute.indexOf(nextPoint);
+        newRoute.add(indexBetweenPoints, point);
+
+        return newRoute;
     }
 }

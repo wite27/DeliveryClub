@@ -41,6 +41,9 @@ public class DeliveryContract {
     private String point;
 
     @JSONField(ordinal = 6)
+    public boolean isProducerDelivery;
+
+    @JSONField(ordinal = 7)
     private ArrayList<DeliveryContractHistoryItem> previousContracts;
 
     public String getId() {return id;}

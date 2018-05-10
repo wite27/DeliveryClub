@@ -20,11 +20,20 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
     private ArrayList<DFAgentDescription> dynamicAgentsInThisDistrict;
     private String conversationId;
 
+    // in case of Static agent:
+    private boolean needDeliveryToPoint;
+    private String neededPoint;
+
     public AskForDeliveryInDistrictBehaviour(AgentBase agent, String conversationId) {
         super(agent);
 
         this.agent = agent;
         this.conversationId = conversationId;
+    }
+
+    public void configurePointForStaticAgent(String point) {
+        needDeliveryToPoint = true;
+        neededPoint = point;
     }
 
     @Override
@@ -39,7 +48,9 @@ public class AskForDeliveryInDistrictBehaviour extends OneShotBehaviour {
         var msg = MessageHelper.buildMessage(
                 ACLMessage.CFP,
                 CallForDeliveryProposeMessageContent.class,
-                null);
+                needDeliveryToPoint
+                    ? new CallForDeliveryProposeMessageContent(neededPoint)
+                    : new CallForDeliveryProposeMessageContent());
 
         msg.setConversationId(conversationId);
         MessageHelper.addReceivers(
