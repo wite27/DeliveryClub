@@ -125,12 +125,11 @@ public abstract class AgentBase extends Agent {
                                     .filter(x -> !isAgentInCheckStatus(x.getSender())) // ignore agents under check
                                     .filter(x -> produceContracts.stream() // early cycle break
                                             .noneMatch(c -> c.getConsumer().getId().equals(x.getSender().getName())))
-                                    .sorted(Comparator.comparingDouble(self::getProposeDeliveryCost))
-                                    .filter(x -> getProposeDeliveryCost(x) < currentCost)
-                                    .findFirst()
+                                    .map(x -> new DeliveryProposeParams(getDeliveryProposeStrategy(x), x))
+                                    .filter(x -> x.getStrategy().getCost() < currentCost)
+                                    .min(Comparator.comparingDouble(x -> x.getStrategy().getCost()))
                                     .ifPresent(bestDeal -> {
-                                        var reaction = betterReceiveContractFound(bestDeal,
-                                                MessageHelper.parse(bestDeal, DeliveryProposeMessageContent.class));
+                                        var reaction = betterReceiveContractFound(bestDeal);
 
                                         if (reaction != null)
                                             sequentialBehaviour.addSubBehaviour(reaction);
@@ -324,8 +323,8 @@ public abstract class AgentBase extends Agent {
     }
 
     protected abstract double getCurrentReceiveCost();
-    protected abstract double getProposeDeliveryCost(ACLMessage message);
-    protected abstract Behaviour betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content);
+    protected abstract DeliveryProposeStrategy getDeliveryProposeStrategy(ACLMessage message);
+    protected abstract Behaviour betterReceiveContractFound(DeliveryProposeParams params);
     protected void receiveContractCostUpdated(ACLMessage message, UpdateContractCostMessageContent content) {};
 
     protected ContractParty toContractParty() {

@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by K750JB on 24.03.2018.
@@ -32,7 +31,6 @@ public class DynamicAgent extends AgentBase {
         type = AgentType.Dynamic;
     }
 
-    private boolean isChangingReceiveContractInProcess = false;
     private PotentialContractMessageContent awaitingPotentialContract;
 
     @Override
@@ -154,7 +152,11 @@ public class DynamicAgent extends AgentBase {
         addBehaviour(new CyclicReceiverWithHandlerBehaviour(this, mt, aclMessage -> {
             var content = MessageHelper.parse(aclMessage, PotentialContractMessageContent.class);
 
-            var isConditionsInForce = calculateCostWhichIPropose() <= content.getContract().getCost();
+            var costIfMakeContractNow = createProposeTo(
+                    aclMessage.getSender(), content.getContract().getPoint())
+                    .getContracts().get(0).getCost();
+            var isConditionsInForce = costIfMakeContractNow <= content.getContract().getCost();
+
             if (awaitingPotentialContract != null
                 || !isConditionsInForce
                 || !content.getContract().hasEqualProducersChain(receiveContract.makeChain())
@@ -199,8 +201,7 @@ public class DynamicAgent extends AgentBase {
         receiveContract = contract;
         Log.fromAgent(this, "got new receive contract: " + this.receiveContract.toShortString());
 
-        // TODO multipoint
-        var calc = getCostToPointSimple(contract.getPoint());
+        var calc = getCostToPoint(contract.getPoint());
 
         if (!route.contains(calc.point))
         {
@@ -300,62 +301,49 @@ public class DynamicAgent extends AgentBase {
     }
 
     @Override
-    protected double getProposeDeliveryCost(ACLMessage message) {
+    protected DeliveryProposeStrategy getDeliveryProposeStrategy(ACLMessage message) {
         var proposeContracts = MessageHelper.parse(message, DeliveryProposeMessageContent.class)
                 .getContracts();
         var currentDeliveryPoint = receiveContract != null ? receiveContract.getPoint() : null;
 
-        var contractsNotDependentOnCurrentPoint = produceContracts.stream()
-                .filter(x -> !x.getPoint().equals(currentDeliveryPoint))
-                .collect(Collectors.toList());
+        var bestStrategy = proposeContracts.stream()
+                .flatMap(x -> List.of(getChangePointStrategy(x, currentDeliveryPoint),
+                    getBothPointsStrategy(x, currentDeliveryPoint)).stream())
+                .min(Comparator.comparingDouble(DeliveryProposeStrategy::getCost))
+                .get();
 
-        var minCost = Double.MAX_VALUE;
-        DeliveryContract bestContract = null;
-
-        for (DeliveryContract currentContract : proposeContracts) {
-            var costIfChangePoint = getCostIfChangePoint(currentContract,
-                    currentDeliveryPoint);
-            var costIfBothPoints = getCostIfBothPoints(currentContract,
-                    currentDeliveryPoint);
-
-            if (costIfChangePoint < costIfBothPoints
-                    && costIfChangePoint < minCost) {
-                minCost = costIfChangePoint;
-                bestContract = currentContract;
-            }
-
-            if (costIfBothPoints <= costIfChangePoint
-                    && costIfBothPoints < minCost) {
-                minCost = costIfBothPoints;
-                bestContract = currentContract;
-            }
-        }
-        return bestContract.getCost();
+        return bestStrategy;
     }
 
-    private double getCostIfChangePoint(DeliveryContract proposeContract, String currentDeliveryPoint) {
+    private DeliveryProposeStrategy getChangePointStrategy(DeliveryContract proposeContract, String currentDeliveryPoint) {
         var newPoint = proposeContract.getPoint();
         var contractsNotDependentOnCurrentPoint = produceContracts.stream()
                 .filter(x -> !x.getPoint().equals(currentDeliveryPoint))
                 .collect(Collectors.toList());
 
-        var routeCopy = new ArrayList<>(route);
-        routeCopy.remove(currentDeliveryPoint);
+        var routeCopy = removeFromRouteSafe(route, currentDeliveryPoint);
         var changePointCalc = getCostToPointForRoute(routeCopy, newPoint, null);
         var routeIfChangePoint = changePointCalc.getNewRoute(routeCopy);
 
-        return (proposeContract.getCost() + changePointCalc.cost)
+        var totalCost = (proposeContract.getCost() + changePointCalc.cost)
                 - (contractsNotDependentOnCurrentPoint.stream()
                 .map(x -> Math.min(x.getCost(),
                         getCostToPointForRoute(routeIfChangePoint, x.getPoint(), null).cost))
                 .reduce((x, y) -> (x + y)).orElse(0.0));
+
+        return new DeliveryProposeStrategy(
+                DeliveryProposeStrategyType.ChangePoint,
+                totalCost,
+                proposeContract,
+                newPoint,
+                currentDeliveryPoint,
+                routeIfChangePoint);
     }
 
-    private double getCostIfBothPoints(DeliveryContract proposeContract, String currentDeliveryPoint) {
+    private DeliveryProposeStrategy getBothPointsStrategy(DeliveryContract proposeContract, String currentDeliveryPoint) {
         var newPoint = proposeContract.getPoint();
 
-        var routeCopy = new ArrayList<>(route);
-        routeCopy.remove(currentDeliveryPoint);
+        var routeCopy = removeFromRouteSafe(route, currentDeliveryPoint);
         var changePointCalc = getCostToPointForRoute(routeCopy, newPoint, null);
         var routeIfChangePoint = changePointCalc.getNewRoute(routeCopy);
 
@@ -363,23 +351,32 @@ public class DynamicAgent extends AgentBase {
         var roadCostIfBothPoints = changePointCalc.cost + calcIfBothPoints.cost;
         var routeIfBothPoints = calcIfBothPoints.getNewRoute(routeIfChangePoint);
 
-        return (proposeContract.getCost() + roadCostIfBothPoints)
+        var totalCost = (proposeContract.getCost() + roadCostIfBothPoints)
                 - (produceContracts.stream()
                 .map(x -> Math.min(x.getCost(),
                         getCostToPointForRoute(routeIfBothPoints, x.getPoint(), null).cost))
                 .reduce((x, y) -> x + y).orElse(0.0));
+
+        return new DeliveryProposeStrategy(
+                DeliveryProposeStrategyType.BothPoints,
+                totalCost,
+                proposeContract,
+                newPoint,
+                currentDeliveryPoint,
+                routeIfBothPoints);
     }
 
     @Override
-    protected Behaviour betterReceiveContractFound(ACLMessage message, DeliveryProposeMessageContent content) {
+    protected Behaviour betterReceiveContractFound(DeliveryProposeParams params) {
         if (awaitingPotentialContract != null) {
             // we already waiting for confirmation on awaiting contract
             return null;
         }
-        var proposerAid = message.getSender();
+        var proposerAid = params.getProposeMessage().getSender();
 
-        var bestPropose = getProposeDeliveryCalcResult(message); // get best point from propose
-        var potentialContract = new PotentialContractMessageContent(bestPropose, content.getProposeId());
+        var bestStrategy = params.getStrategy();
+        var potentialContract = new PotentialContractMessageContent(
+                bestStrategy.getProposedContract(), params.getProposeContent().getProposeId());
 
         awaitingPotentialContract = potentialContract;
         Log.fromAgent(this, " got awaiting contract: " + potentialContract.getContract().toShortString());
@@ -573,8 +570,7 @@ public class DynamicAgent extends AgentBase {
         best.point = point;
 
         if (pointToRemove != null) {
-            routeToCheck = new ArrayList<>(routeToCheck);
-            routeToCheck.remove(pointToRemove);
+            routeToCheck = removeFromRouteSafe(routeToCheck, pointToRemove);
         }
 
         for (int i = 0; i < routeToCheck.size() - 1; i++)
@@ -590,6 +586,18 @@ public class DynamicAgent extends AgentBase {
             }
         }
         return best;
+    }
+
+    private ArrayList<String> removeFromRouteSafe(ArrayList<String> route, String point) {
+        var result = new ArrayList<>(route);
+
+        if (route.size() <= 2
+            || route.get(0).equals(point)
+            || route.get(route.size() - 1).equals(point))
+            return result;
+
+        result.remove(point);
+        return result;
     }
 
     private CalculateCostResult getCostToPointSimple(String point)
